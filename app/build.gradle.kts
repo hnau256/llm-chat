@@ -4,7 +4,6 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.kotlinx.cli)
     implementation(libs.koog.agents)
     implementation(libs.tgbotapi)
     implementation(libs.ktor.http)

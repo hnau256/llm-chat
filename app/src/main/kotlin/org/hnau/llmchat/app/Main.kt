@@ -1,14 +1,11 @@
 package org.hnau.llmchat.app
 
+import arrow.core.getOrElse
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.platformLogWriter
 import io.ktor.http.Url
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngineFactory
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.default
-import kotlinx.cli.required
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.hnau.commons.kotlin.foldNullable
@@ -18,57 +15,35 @@ import org.hnau.llmchat.app.chat.dto.Port
 import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
 import org.hnau.llmchat.app.chat.telegram.telegramLongPolling
 import org.hnau.llmchat.app.chat.telegram.telegramWebhook
-import org.hnau.llmchat.app.utils.port
-import org.hnau.llmchat.app.utils.telegramBotToken
-import org.hnau.llmchat.app.utils.url
-
+import org.hnau.llmchat.app.utils.getEnv
+import org.hnau.llmchat.app.utils.getRequiredEnv
+import org.hnau.llmchat.app.utils.parser
 
 private val logger = Logger.withTag("Main")
 
-fun main(
-    args: Array<String>,
-) {
+fun main() {
 
     Logger.setLogWriters(platformLogWriter())
 
-    val parser = ArgParser("LLMChat")
+    val healthPort: Port? = getEnv(
+        name = "HEALTH_PORT",
+        parser = Port.parser,
+    ).getOrNull()
 
-    val healthPort: Port? by parser
-        .option(
-            type = ArgType.port,
-            fullName = "health-port",
-            description = "Health check port"
-        )
+    val telegramToken: TelegramBotToken = getRequiredEnv(
+        name = "TELEGRAM_BOT_TOKEN",
+        parser = TelegramBotToken.parser,
+    )
 
-    val telegramToken: TelegramBotToken by parser
-        .option(
-            type = ArgType.telegramBotToken,
-            fullName = "telegram-bot-token",
-            shortName = "t",
-            description = "Telegram bot token",
-        )
-        .required()
+    val telegramWebhookUrl: Url? = getEnv(
+        name = "TELEGRAM_WEBHOOK_URL",
+        parser = Url.parser,
+    ).getOrNull()
 
-    val telegramWebhookUrl: Url? by parser
-        .option(
-            type = ArgType.url,
-            fullName = "telegram-webhook-url",
-            shortName = "u",
-            description = "Telegram bot webhook url",
-        )
-
-    val telegramWebhookPort: Port by parser
-        .option(
-            type = ArgType.port,
-            fullName = "telegram-webhook-port",
-            shortName = "p",
-            description = "Telegram bot webhook port",
-        )
-        .default(
-            Port.createOrNull(8080)!!,
-        )
-
-    parser.parse(args)
+    val telegramWebhookPort: Port = getEnv(
+        name = "TELEGRAM_WEBHOOK_PORT",
+        parser = Port.parser,
+    ).getOrElse { Port.createOrNull(8080)!! }
 
     runBlocking {
 
