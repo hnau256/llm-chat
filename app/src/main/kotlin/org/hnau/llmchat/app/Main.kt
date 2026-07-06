@@ -7,6 +7,7 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.hnau.commons.kotlin.foldNullable
 
 
 private val logger = Logger.withTag("Main")
@@ -34,13 +35,17 @@ fun main(
 
         healthPort
             .takeIf { it > 0 }
-            ?.let { positiveHealthPort ->
-                launch {
-                    httpHealthServer(
-                        port = positiveHealthPort,
-                    )
+            .foldNullable(
+                ifNull = { logger.d { "No need to launch health server" } },
+                ifNotNull = { positiveHealthPort ->
+                    logger.i { "Launching health server on port $positiveHealthPort" }
+                    launch {
+                        httpHealthServer(
+                            port = positiveHealthPort,
+                        )
+                    }
                 }
-            }
+            )
     }
 
 }
