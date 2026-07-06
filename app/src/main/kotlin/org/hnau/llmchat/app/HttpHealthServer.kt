@@ -25,9 +25,7 @@ suspend fun httpHealthServer(
     }
 
     try {
-        server.start(
-            wait = true,
-        )
+        server.start()
         awaitCancellation()
     } finally {
         server.stop()

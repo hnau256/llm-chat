@@ -1,6 +1,6 @@
 package org.hnau.llmchat.app.chat.telegram
 
-import dev.inmo.tgbotapi.bot.ktor.telegramBot
+import org.hnau.llmchat.app.chat.telegram.utils.telegramBot
 import dev.inmo.tgbotapi.extensions.api.webhook.setWebhookInfo
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviour
 import dev.inmo.tgbotapi.extensions.utils.updates.retrieving.includeWebhookHandlingInRoute
@@ -24,7 +24,11 @@ fun ChatServerLauncher.Companion.telegramWebhook(
     webhookUrl: Url,
 ): ChatServerLauncher = ChatServerLauncher
     .create { callback: suspend (ChatRequest) -> ChatResponse ->
-        val bot = telegramBot(token.token)
+
+        val bot = telegramBot(
+            token = token,
+        )
+
         val behaviourContext = bot.buildBehaviour {
             config(
                 callback = callback,
@@ -49,9 +53,7 @@ fun ChatServerLauncher.Companion.telegramWebhook(
 
 
         try {
-            server.start(
-                wait = true,
-            )
+            server.start()
             awaitCancellation()
         } finally {
             server.stop()
