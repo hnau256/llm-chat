@@ -23,6 +23,8 @@ import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
+import org.hnau.llmchat.app.db.settings.update
+import org.hnau.llmchat.app.dto.UserId
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramButton
 import org.hnau.llmchat.app.telegram.TelegramChat
@@ -35,9 +37,19 @@ fun LLMChat(
     dbAccessor: DBAccessor,
 ): BehaviourContextReceiver<Unit> {
 
-    val userSettingsRepository = UserSettingsRepository(dbAccessor)
-
     val waitingForAnswerInputs = WaitingForAnswerInputs()
+
+    val createContext: TelegramBot.(IdChatIdentifier) -> LLMChatContext = { chatId ->
+        LLMChatContext(
+            chat = toChat(
+                chatId = chatId,
+            ),
+            userSettings = UserSettingsRepository(
+                db = dbAccessor,
+                userId = UserId(chatId.chatId.long.toString())
+            ),
+        )
+    }
 
     return {
 
@@ -54,12 +66,7 @@ fun LLMChat(
 
             val chatId = message.chat.id
 
-            val context = LLMChatContext(
-                chat = toChat(
-                    chatId = chatId,
-                ),
-                userSettings = userSettingsRepository,
-            )
+            val context = createContext(chatId)
 
             val text = message.content.text
 
@@ -122,12 +129,7 @@ fun LLMChat(
 
             val chatId = message.chat.id
 
-            val context = LLMChatContext(
-                chat = toChat(
-                    chatId = chatId,
-                ),
-                userSettings = userSettingsRepository,
-            )
+            val context = createContext(chatId)
 
             val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
                 chatId = chatId,
@@ -346,14 +348,16 @@ private val commands: List<TelegramPageMessage.Button> =
                             text = "Base prompt",
                             type = TelegramPageMessage.Button.Type.Child(
                                 TelegramPageMessage(
-                                    generateText = { "Base prompt: QWERTY" },
+                                    generateText = {
+                                        "Base prompt: ${userSettings.get().basePrompt}"
+                                    },
                                     buttons = listOf(
                                         TelegramPageMessage.Button(
                                             id = CallbackDataPath.Entry("edit"),
                                             text = "Edit",
                                             type = TelegramPageMessage.Button.Type.Input(
                                                 onInput = { input ->
-                                                    println("QWERTY. On input: $input")
+                                                    userSettings.update { copy(basePrompt = input) }
                                                 }
                                             )
                                         )

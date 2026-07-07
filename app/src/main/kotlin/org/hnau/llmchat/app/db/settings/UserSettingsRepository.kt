@@ -11,11 +11,10 @@ import java.sql.ResultSet
 
 class UserSettingsRepository(
     private val db: DBAccessor,
+    private val userId: UserId,
 ) {
 
-    suspend fun get(
-        userId: UserId,
-    ): UserSettings = db.withConnection { connection ->
+    suspend fun get(): UserSettings = db.withConnection { connection ->
         connection
             .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
             .apply { setString(1, userId.value) }
@@ -35,7 +34,6 @@ class UserSettingsRepository(
     }
 
     suspend fun save(
-        userId: UserId,
         settings: UserSettings,
     ) {
         db.withConnection { connection ->
