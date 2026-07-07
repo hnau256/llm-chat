@@ -4,20 +4,23 @@ import org.hnau.commons.gen.fold.annotations.Fold
 
 data class TelegramPageMessage(
     val generateText: () -> String,
-    val buttons: List<Button<Button.Type>>,
+    val buttons: List<Button>,
 ) {
 
-    data class Button<T : Button.Type>(
+    data class Button(
         val id: CallbackDataPath.Entry,
         val text: String,
-        val type: T,
+        val type: Type,
     ) {
 
-        @Fold
         sealed interface Type {
 
             data class Child(
                 val message: TelegramPageMessage,
+            ) : Type
+
+            data class Input(
+                val onInput: suspend () -> Unit,
             ) : Type
         }
     }

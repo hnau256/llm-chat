@@ -22,7 +22,6 @@ import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
-import org.hnau.llmchat.app.telegram.fold
 
 fun LLMChat(
     dbAccessor: DBAccessor,
@@ -58,7 +57,7 @@ fun LLMChat(
                         )
                     },
                     ifNotNull = { command ->
-                        openPage(
+                        handleButtonClick(
                             chatId = chatId,
                             encodedPath = command,
                             messageToEdit = null,
@@ -69,7 +68,7 @@ fun LLMChat(
 
         onDataCallbackQuery { dataCallbackQuery ->
             val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
-            openPage(
+            handleButtonClick(
                 chatId = message.chat.id,
                 encodedPath = dataCallbackQuery.data,
                 messageToEdit = message,
@@ -79,15 +78,15 @@ fun LLMChat(
     }
 }
 
-private suspend fun BehaviourContext.openPage(
+private suspend fun BehaviourContext.handleButtonClick(
     chatId: IdChatIdentifier,
     encodedPath: String,
     messageToEdit: ContentMessage<MessageContent>?,
 ) {
-    val (path, page) = CallbackDataPath
+    val (path, button) = CallbackDataPath
         .tryParse(encodedPath)
         ?.let { path ->
-            val page = findPage(
+            val page = findButton(
                 buttons = commands,
                 path = path,
             ) ?: return@let null
@@ -100,37 +99,42 @@ private suspend fun BehaviourContext.openPage(
             )
             return
         }
-    openPage(
-        chatId = chatId,
-        messageToEdit = messageToEdit,
-        path = path,
-        page = page,
-    )
+
+    when (val type = button.type) {
+        is TelegramPageMessage.Button.Type.Child -> openPage(
+            chatId = chatId,
+            messageToEdit = messageToEdit,
+            path = path,
+            page = type.message,
+        )
+
+        is TelegramPageMessage.Button.Type.Input -> TODO()
+    }
 }
 
-private fun findPage(
-    buttons: List<TelegramPageMessage.Button<TelegramPageMessage.Button.Type>>,
+private fun findButton(
+    buttons: List<TelegramPageMessage.Button>,
     path: CallbackDataPath,
-): TelegramPageMessage? = buttons
+): TelegramPageMessage.Button? = buttons
     .find { it.id == path.entries.head }
     ?.let { button ->
-        button.type.fold(
-            ifChild = { message ->
-                path
-                    .entries
-                    .tail()
-                    .toNonEmptyListOrNull()
-                    .foldNullable(
-                        ifNull = { message },
-                        ifNotNull = { tail ->
-                            findPage(
-                                buttons = message.buttons,
-                                path = CallbackDataPath(tail),
-                            )
-                        }
-                    )
-            }
-        )
+        path
+            .entries
+            .tail()
+            .toNonEmptyListOrNull()
+            .foldNullable(
+                ifNull = { button },
+                ifNotNull = { tail ->
+                    when (val type = button.type) {
+                        is TelegramPageMessage.Button.Type.Child -> findButton(
+                            buttons = type.message.buttons,
+                            path = CallbackDataPath(tail),
+                        )
+
+                        is TelegramPageMessage.Button.Type.Input -> null
+                    }
+                }
+            )
     }
 
 private suspend fun BehaviourContext.openPage(
@@ -187,7 +191,7 @@ private suspend fun BehaviourContext.openPage(
     )
 }
 
-private val commands: List<TelegramPageMessage.Button<TelegramPageMessage.Button.Type>> =
+private val commands: List<TelegramPageMessage.Button> =
     listOf(
         TelegramPageMessage.Button(
             id = CallbackDataPath.Entry("settings"),
