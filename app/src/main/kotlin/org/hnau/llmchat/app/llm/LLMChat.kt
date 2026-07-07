@@ -18,6 +18,7 @@ import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
@@ -95,9 +96,15 @@ fun LLMChat(
                         )
                     },
                     ifNotNull = { command ->
-                        handleButtonClick(
+
+                        val path = tryParseEncodedPathOrLogError(
                             chatId = chatId,
                             encodedPath = command,
+                        ) ?: return@foldNullable
+
+                        handleButtonClick(
+                            chatId = chatId,
+                            path = path,
                             messageToEdit = null,
                             waitingForAnswerInputs = waitingForAnswerInputs,
                         )
@@ -107,7 +114,7 @@ fun LLMChat(
 
         onDataCallbackQuery { dataCallbackQuery ->
             val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
-            val path = dataCallbackQuery.data
+            val encodedPath = dataCallbackQuery.data
 
             val chatId = message.chat.id
 
@@ -115,7 +122,7 @@ fun LLMChat(
                 chatId = chatId,
             )
 
-            if (path == CancelInputCallbackData) {
+            if (encodedPath == CancelInputCallbackData) {
                 waitingForAnswerInputs
                     .consume()
                     .foldNullable(
@@ -132,9 +139,14 @@ fun LLMChat(
                 return@onDataCallbackQuery
             }
 
+            val path = tryParseEncodedPathOrLogError(
+                chatId = chatId,
+                encodedPath = encodedPath,
+            ) ?: return@onDataCallbackQuery
+
             handleButtonClick(
                 chatId = chatId,
-                encodedPath = path,
+                path = path,
                 messageToEdit = message.messageId,
                 waitingForAnswerInputs = waitingForAnswerInputs,
             )
@@ -151,36 +163,43 @@ private suspend fun TelegramBot.afterInput(
 ) {
     handleButtonClick(
         chatId = chatId,
-        encodedPath = inputPath
-            .tryDropLast()!!
-            .encode(),
+        path = inputPath.tryDropLast()!!,
         messageToEdit = null,
         waitingForAnswerInputs = waitingForAnswerInputs,
     )
 }
 
-private suspend fun TelegramBot.handleButtonClick(
+private suspend fun TelegramBot.tryParseEncodedPathOrLogError(
     chatId: IdChatIdentifier,
     encodedPath: String,
+): CallbackDataPath? = CallbackDataPath
+    .tryParse(encodedPath)
+    .also { pathOrNull ->
+        pathOrNull.ifNull {
+            send(
+                chatId = chatId,
+                text = "Unknown command format '$encodedPath'",
+            )
+        }
+    }
+
+private suspend fun TelegramBot.handleButtonClick(
+    chatId: IdChatIdentifier,
+    path: CallbackDataPath,
     messageToEdit: MessageId?,
     waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
-    val (path, button) = CallbackDataPath
-        .tryParse(encodedPath)
-        ?.let { path ->
-            val page = findButton(
-                buttons = commands,
-                path = path,
-            ) ?: return@let null
-            path to page
-        }
-        ?: run {
-            send(
-                chatId = chatId,
-                text = "Unknown command '$encodedPath'",
-            )
-            return
-        }
+
+    val button = findButton(
+        buttons = commands,
+        path = path,
+    ) ?: run {
+        send(
+            chatId = chatId,
+            text = "Unknown command '$path'",
+        )
+        return
+    }
 
     button
         .type

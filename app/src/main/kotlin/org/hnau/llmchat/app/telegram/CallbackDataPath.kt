@@ -32,6 +32,8 @@ data class CallbackDataPath(
     fun encode(): String =
         unsafeStringMapper.reverse(this)
 
+    override fun toString(): String = encode()
+
     companion object {
 
         fun tryParse(
