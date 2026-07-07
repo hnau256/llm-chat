@@ -68,10 +68,11 @@ fun LLMChat(
         }
 
         onDataCallbackQuery { dataCallbackQuery ->
+            val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
             openPage(
-                chatId = dataCallbackQuery.from.id,
+                chatId = message.chat.id,
                 encodedPath = dataCallbackQuery.data,
-                messageToEdit = dataCallbackQuery.message,
+                messageToEdit = message,
             )
         }
 
