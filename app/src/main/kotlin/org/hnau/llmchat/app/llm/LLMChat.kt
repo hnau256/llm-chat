@@ -1,5 +1,6 @@
 package org.hnau.llmchat.app.llm
 
+import arrow.core.nonEmptyListOf
 import arrow.core.tail
 import arrow.core.toNonEmptyListOrNull
 import co.touchlab.kermit.Logger
@@ -23,6 +24,8 @@ import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 import org.hnau.llmchat.app.telegram.CallbackDataPath
+import org.hnau.llmchat.app.telegram.TelegramButton
+import org.hnau.llmchat.app.telegram.TelegramChat
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
 import org.hnau.llmchat.app.telegram.fold
 
@@ -51,6 +54,10 @@ fun LLMChat(
 
             val chatId = message.chat.id
 
+            val telegramChat = toChat(
+                chatId = chatId,
+            )
+
             val text = message.content.text
 
             val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
@@ -67,16 +74,14 @@ fun LLMChat(
                         ifChild = { null },
                         ifInput = { onInput ->
                             onInput(text)
-                            afterInput(
-                                chatId = chatId,
+                            telegramChat.afterInput(
                                 inputPath = inputToAnswer,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
                             )
                         }
                     )
                     ?: run {
-                        send(
-                            chatId = chatId,
+                        telegramChat.sendMessage(
                             text = "Unable handle input to answer",
                         )
                         return@onText
@@ -90,20 +95,19 @@ fun LLMChat(
                 .removePrefixOrNull("/")
                 .foldNullable(
                     ifNull = {
-                        send(
-                            chatId = chatId,
-                            text = "Answer for '$text'"
+                        telegramChat.sendMessage(
+                            text = "Answer for '$text'",
                         )
                     },
                     ifNotNull = { command ->
 
-                        val path = tryParseEncodedPathOrLogError(
-                            chatId = chatId,
-                            encodedPath = command,
-                        ) ?: return@foldNullable
+                        val path = telegramChat
+                            .tryParseEncodedPathOrLogError(
+                                encodedPath = command,
+                            )
+                            ?: return@foldNullable
 
-                        handleButtonClick(
-                            chatId = chatId,
+                        telegramChat.handleButtonClick(
                             path = path,
                             messageToEdit = null,
                             waitingForAnswerInputs = waitingForAnswerInputs,
@@ -118,6 +122,10 @@ fun LLMChat(
 
             val chatId = message.chat.id
 
+            val telegramChat = toChat(
+                chatId = chatId,
+            )
+
             val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
                 chatId = chatId,
             )
@@ -128,8 +136,7 @@ fun LLMChat(
                     .foldNullable(
                         ifNull = { logger.w { "No input to cancel" } },
                         ifNotNull = { inputToCancel ->
-                            afterInput(
-                                chatId = chatId,
+                            telegramChat.afterInput(
                                 inputPath = inputToCancel,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
                             )
@@ -139,13 +146,11 @@ fun LLMChat(
                 return@onDataCallbackQuery
             }
 
-            val path = tryParseEncodedPathOrLogError(
-                chatId = chatId,
+            val path = telegramChat.tryParseEncodedPathOrLogError(
                 encodedPath = encodedPath,
             ) ?: return@onDataCallbackQuery
 
-            handleButtonClick(
-                chatId = chatId,
+            telegramChat.handleButtonClick(
                 path = path,
                 messageToEdit = message.messageId,
                 waitingForAnswerInputs = waitingForAnswerInputs,
@@ -156,35 +161,71 @@ fun LLMChat(
     }
 }
 
-private suspend fun TelegramBot.afterInput(
+private fun TelegramBot.toChat(
     chatId: IdChatIdentifier,
+): TelegramChat = object : TelegramChat {
+
+    override suspend fun sendMessage(
+        text: String,
+        buttons: List<TelegramButton>,
+        messageToEdit: MessageId?
+    ) {
+
+        val replyMarkup = InlineKeyboardMarkup(
+            keyboard = buttons.map { button ->
+                listOf(
+                    CallbackDataInlineKeyboardButton(
+                        text = button.title,
+                        callbackData = button.path.encode(),
+                    )
+                )
+            }
+        )
+
+        messageToEdit.foldNullable(
+            ifNull = {
+                send(
+                    chatId = chatId,
+                    text = text,
+                    replyMarkup = replyMarkup,
+                )
+            },
+            ifNotNull = { messageId ->
+                editMessageText(
+                    chatId = chatId,
+                    messageId = messageId,
+                    text = text,
+                    replyMarkup = replyMarkup,
+                )
+            }
+        )
+    }
+}
+
+private suspend fun TelegramChat.afterInput(
     inputPath: CallbackDataPath,
     waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
     handleButtonClick(
-        chatId = chatId,
         path = inputPath.tryDropLast()!!,
         messageToEdit = null,
         waitingForAnswerInputs = waitingForAnswerInputs,
     )
 }
 
-private suspend fun TelegramBot.tryParseEncodedPathOrLogError(
-    chatId: IdChatIdentifier,
+private suspend fun TelegramChat.tryParseEncodedPathOrLogError(
     encodedPath: String,
 ): CallbackDataPath? = CallbackDataPath
     .tryParse(encodedPath)
     .also { pathOrNull ->
         pathOrNull.ifNull {
-            send(
-                chatId = chatId,
+            sendMessage(
                 text = "Unknown command format '$encodedPath'",
             )
         }
     }
 
-private suspend fun TelegramBot.handleButtonClick(
-    chatId: IdChatIdentifier,
+private suspend fun TelegramChat.handleButtonClick(
     path: CallbackDataPath,
     messageToEdit: MessageId?,
     waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
@@ -194,8 +235,7 @@ private suspend fun TelegramBot.handleButtonClick(
         buttons = commands,
         path = path,
     ) ?: run {
-        send(
-            chatId = chatId,
+        sendMessage(
             text = "Unknown command '$path'",
         )
         return
@@ -206,26 +246,26 @@ private suspend fun TelegramBot.handleButtonClick(
         .fold(
             ifChild = { message ->
                 openPage(
-                    chatId = chatId,
                     messageToEdit = messageToEdit,
                     path = path,
                     page = message,
                 )
             },
             ifInput = {
-                send(
-                    chatId = chatId,
+                sendMessage(
                     text = "Input '${button.text}",
-                    replyMarkup = InlineKeyboardMarkup(
-                        keyboard = listOf(
-                            listOf(
-                                CallbackDataInlineKeyboardButton(
-                                    text = "Cancel input",
-                                    callbackData = CancelInputCallbackData,
+                    buttons = listOf(
+                        TelegramButton(
+                            title = "Cancel input",
+                            path = CallbackDataPath(
+                                entries = nonEmptyListOf(
+                                    CallbackDataPath.Entry(
+                                        id = CancelInputCallbackData,
+                                    )
                                 )
-                            )
+                            ),
                         )
-                    )
+                    ),
                 )
                 waitingForAnswerInputs.add(path)
             }
@@ -260,57 +300,32 @@ private fun findButton(
             )
     }
 
-private suspend fun TelegramBot.openPage(
-    chatId: IdChatIdentifier,
+private suspend fun TelegramChat.openPage(
     messageToEdit: MessageId?,
     path: CallbackDataPath,
     page: TelegramPageMessage,
 ) {
-    val text = page.generateText()
-    val replyMarkup = InlineKeyboardMarkup(
-        listOf(
-            buildList {
-                addAll(
-                    page.buttons.map { button ->
-                        Pair(
-                            first = button.text,
-                            second = path + button.id,
-                        )
-                    }
-                )
-                path.tryDropLast()?.let { pathToGoBack ->
-                    add(
-                        Pair(
-                            first = "Back",
-                            second = pathToGoBack,
-                        )
+    sendMessage(
+        messageToEdit = messageToEdit,
+        text = page.generateText(),
+        buttons = buildList {
+            addAll(
+                page.buttons.map { button ->
+                    TelegramButton(
+                        title = button.text,
+                        path = path + button.id,
                     )
                 }
-            }.map { (text, path) ->
-                CallbackDataInlineKeyboardButton(
-                    text = text,
-                    callbackData = path.encode(),
+            )
+            path.tryDropLast()?.let { pathToGoBack ->
+                add(
+                    TelegramButton(
+                        title = "Back",
+                        path = pathToGoBack,
+                    )
                 )
             }
-        )
-    )
-
-    messageToEdit.foldNullable(
-        ifNull = {
-            send(
-                chatId = chatId,
-                text = text,
-                replyMarkup = replyMarkup,
-            )
         },
-        ifNotNull = { message ->
-            editMessageText(
-                chatId = chatId,
-                messageId = message,
-                text = text,
-                replyMarkup = replyMarkup,
-            )
-        }
     )
 }
 
