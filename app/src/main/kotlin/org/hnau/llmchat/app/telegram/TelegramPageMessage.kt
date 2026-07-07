@@ -21,7 +21,7 @@ data class TelegramPageMessage(
             ) : Type
 
             data class Input(
-                val onInput: suspend () -> Unit,
+                val onInput: suspend (String) -> Unit,
             ) : Type
         }
     }

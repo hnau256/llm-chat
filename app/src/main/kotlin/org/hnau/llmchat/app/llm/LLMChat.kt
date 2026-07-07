@@ -2,6 +2,8 @@ package org.hnau.llmchat.app.llm
 
 import arrow.core.tail
 import arrow.core.toNonEmptyListOrNull
+import co.touchlab.kermit.Logger
+import dev.inmo.tgbotapi.extensions.api.answers.answerCallbackQuery
 import dev.inmo.tgbotapi.extensions.api.bot.setMyCommands
 import dev.inmo.tgbotapi.extensions.api.edit.text.editMessageText
 import dev.inmo.tgbotapi.extensions.api.send.send
@@ -22,12 +24,17 @@ import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
 import org.hnau.llmchat.app.telegram.fold
+import java.util.concurrent.ConcurrentHashMap
+
+private val logger = Logger.withTag("LLMChat")
 
 fun LLMChat(
     dbAccessor: DBAccessor,
 ): BehaviourContextReceiver<Unit> {
 
     val userSettingsRepository = UserSettingsRepository(dbAccessor)
+
+    val waitingForAnswerInputs = ConcurrentHashMap<IdChatIdentifier, CallbackDataPath>()
 
     return {
 
@@ -45,6 +52,48 @@ fun LLMChat(
             val chatId = message.chat.id
 
             val text = message.content.text
+
+            val inputToAnswer = waitingForAnswerInputs.remove(chatId)
+            if (inputToAnswer != null) {
+
+                findButton(
+                    buttons = commands,
+                    path = inputToAnswer,
+                )
+                    ?.type
+                    ?.fold(
+                        ifChild = { null },
+                        ifInput = { onInput ->
+                            onInput(text)
+                            inputToAnswer
+                                .tryDropLast()
+                                .foldNullable(
+                                    ifNull = {
+                                        //TODO: Send message to user
+                                    },
+                                    ifNotNull = { parentPath ->
+                                        handleButtonClick(
+                                            chatId = chatId,
+                                            encodedPath = parentPath.encode(),
+                                            messageToEdit = null,
+                                            onWaitingForAnswerInput = { page ->
+                                                waitingForAnswerInputs[message.chat.id] = page
+                                            },
+                                        )
+                                    }
+                                )
+                        }
+                    )
+                    ?: run {
+                        send(
+                            chatId = chatId,
+                            text = "Unable handle input to answer",
+                        )
+                        return@onText
+                    }
+                return@onText
+            }
+
             text
                 .trim()
                 .lowercase()
@@ -61,6 +110,9 @@ fun LLMChat(
                             chatId = chatId,
                             encodedPath = command,
                             messageToEdit = null,
+                            onWaitingForAnswerInput = { page ->
+                                waitingForAnswerInputs[message.chat.id] = page
+                            },
                         )
                     }
                 )
@@ -68,11 +120,46 @@ fun LLMChat(
 
         onDataCallbackQuery { dataCallbackQuery ->
             val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
+            val path = dataCallbackQuery.data
+
+            val chatId = message.chat.id
+
+            if (path == CancelInputCallbackData) {
+                waitingForAnswerInputs.remove(chatId).foldNullable(
+                    ifNull = { logger.w { "No input to cancel" } },
+                    ifNotNull = { inputToCancel ->
+                        inputToCancel
+                            .tryDropLast()
+                            .foldNullable(
+                                ifNull = {
+                                    //TODO: Send message to user
+                                },
+                                ifNotNull = { parentPath ->
+                                    handleButtonClick(
+                                        chatId = chatId,
+                                        encodedPath = parentPath.encode(),
+                                        messageToEdit = null,
+                                        onWaitingForAnswerInput = { page ->
+                                            waitingForAnswerInputs[message.chat.id] = page
+                                        },
+                                    )
+                                }
+                            )
+                    }
+                )
+                answerCallbackQuery(dataCallbackQuery)
+                return@onDataCallbackQuery
+            }
+
             handleButtonClick(
-                chatId = message.chat.id,
-                encodedPath = dataCallbackQuery.data,
+                chatId = chatId,
+                encodedPath = path,
                 messageToEdit = message.messageId,
+                onWaitingForAnswerInput = { page ->
+                    waitingForAnswerInputs[message.chat.id] = page
+                },
             )
+            answerCallbackQuery(dataCallbackQuery)
         }
 
     }
@@ -82,6 +169,7 @@ private suspend fun BehaviourContext.handleButtonClick(
     chatId: IdChatIdentifier,
     encodedPath: String,
     messageToEdit: MessageId?,
+    onWaitingForAnswerInput: (CallbackDataPath) -> Unit,
 ) {
     val (path, button) = CallbackDataPath
         .tryParse(encodedPath)
@@ -111,8 +199,22 @@ private suspend fun BehaviourContext.handleButtonClick(
                     page = message,
                 )
             },
-            ifInput = { onInput ->
-                TODO()
+            ifInput = {
+                send(
+                    chatId = chatId,
+                    text = "Input '${button.text}",
+                    replyMarkup = InlineKeyboardMarkup(
+                        keyboard = listOf(
+                            listOf(
+                                CallbackDataInlineKeyboardButton(
+                                    text = "Cancel input",
+                                    callbackData = CancelInputCallbackData,
+                                )
+                            )
+                        )
+                    )
+                )
+                onWaitingForAnswerInput(path)
             }
         )
 }
@@ -214,7 +316,17 @@ private val commands: List<TelegramPageMessage.Button> =
                             type = TelegramPageMessage.Button.Type.Child(
                                 TelegramPageMessage(
                                     generateText = { "Base prompt: QWERTY" },
-                                    buttons = emptyList(),
+                                    buttons = listOf(
+                                        TelegramPageMessage.Button(
+                                            id = CallbackDataPath.Entry("edit"),
+                                            text = "Edit",
+                                            type = TelegramPageMessage.Button.Type.Input(
+                                                onInput = { input ->
+                                                    println("QWERTY. On input: $input")
+                                                }
+                                            )
+                                        )
+                                    ),
                                 )
                             )
                         )
@@ -223,3 +335,5 @@ private val commands: List<TelegramPageMessage.Button> =
             )
         )
     )
+
+private const val CancelInputCallbackData = "cancel_input"
