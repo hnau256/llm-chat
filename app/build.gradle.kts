@@ -8,6 +8,7 @@ dependencies {
     implementation(libs.tgbotapi)
     implementation(libs.ktor.http)
     implementation(libs.ktor.server.cio)
+    implementation(libs.sqlite.jdbc)
 }
 
 application {

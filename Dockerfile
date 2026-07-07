@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY app/build/install/app/ /app/
 
 ENV HEALTH_PORT=8080
+ENV DB_PATH=/data/llmchat.db
+
+VOLUME /data
 
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 --start-period=30s \
     CMD curl -f http://localhost:${HEALTH_PORT}/health || exit 1

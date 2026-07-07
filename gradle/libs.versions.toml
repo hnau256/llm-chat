@@ -2,9 +2,11 @@
 koog-agents = "1.0.0"
 tgbotapi = "35.1.0"
 ktor = "3.4.1"
+sqlite = "3.46.1.3"
 
 [libraries]
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog-agents" }
 tgbotapi = { module = "dev.inmo:tgbotapi", version.ref = "tgbotapi" }
 ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
