@@ -1,9 +1,10 @@
 package org.hnau.llmchat.app.telegram
 
 import org.hnau.commons.gen.fold.annotations.Fold
+import org.hnau.llmchat.app.llm.LLMChatContext
 
 data class TelegramPageMessage(
-    val generateText: suspend () -> String,
+    val generateText: suspend LLMChatContext.() -> String,
     val buttons: List<Button>,
 ) {
 
@@ -21,7 +22,7 @@ data class TelegramPageMessage(
             ) : Type
 
             data class Input(
-                val onInput: suspend (String) -> Unit,
+                val onInput: suspend LLMChatContext.(String) -> Unit,
             ) : Type
         }
     }
