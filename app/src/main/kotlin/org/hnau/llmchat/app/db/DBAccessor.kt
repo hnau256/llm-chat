@@ -12,6 +12,12 @@ class DBAccessor(
     private val adapter: DBAdapter,
 ) {
 
+    private fun Connection.applyStartSqlIfNeed(): Connection = apply {
+        adapter.startSql?.let { startSql ->
+            createStatement().execute(startSql)
+        }
+    }
+
     private val migrator: AsyncLazy<Unit> = AsyncLazy {
         withContext(Dispatchers.IO) {
             logger.i { "Running database migrations..." }
@@ -22,7 +28,9 @@ class DBAccessor(
                     /* user = */ null,
                     /* password = */ null,
                 )
-                .apply { adapter.startSql?.let(::initSql) }
+                .addAfterConnectCallback { context ->
+                    context.connection.applyStartSqlIfNeed()
+                }
                 .load()
                 .migrate()
             logger.i { "Database migrations complete. ${result.migrationsExecuted} migration(s) applied" }
@@ -35,13 +43,7 @@ class DBAccessor(
         migrator.get()
         adapter
             .getConnection()
-            .apply {
-                adapter
-                    .startSql
-                    ?.let { startSql ->
-                        createStatement().execute(startSql)
-                    }
-            }
+            .applyStartSqlIfNeed()
             .use { connection -> block(connection) }
     }
 }
