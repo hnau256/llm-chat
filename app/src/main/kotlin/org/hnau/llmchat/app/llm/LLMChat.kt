@@ -24,7 +24,6 @@ import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
 import org.hnau.llmchat.app.telegram.fold
-import java.util.concurrent.ConcurrentHashMap
 
 private val logger = Logger.withTag("LLMChat")
 
@@ -34,7 +33,7 @@ fun LLMChat(
 
     val userSettingsRepository = UserSettingsRepository(dbAccessor)
 
-    val waitingForAnswerInputs = ConcurrentHashMap<IdChatIdentifier, CallbackDataPath>()
+    val waitingForAnswerInputs = WaitingForAnswerInputs()
 
     return {
 
@@ -53,9 +52,11 @@ fun LLMChat(
 
             val text = message.content.text
 
-            val inputToAnswer = waitingForAnswerInputs.remove(chatId)
-            if (inputToAnswer != null) {
+            val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
+                chatId = chatId,
+            )
 
+            waitingForAnswerInputs.consume()?.let { inputToAnswer ->
                 findButton(
                     buttons = commands,
                     path = inputToAnswer,
@@ -68,9 +69,7 @@ fun LLMChat(
                             afterInput(
                                 chatId = chatId,
                                 inputPath = inputToAnswer,
-                                onWaitingForAnswerInput = { page ->
-                                    waitingForAnswerInputs[message.chat.id] = page
-                                },
+                                waitingForAnswerInputs = waitingForAnswerInputs,
                             )
                         }
                     )
@@ -100,9 +99,7 @@ fun LLMChat(
                             chatId = chatId,
                             encodedPath = command,
                             messageToEdit = null,
-                            onWaitingForAnswerInput = { page ->
-                                waitingForAnswerInputs[message.chat.id] = page
-                            },
+                            waitingForAnswerInputs = waitingForAnswerInputs,
                         )
                     }
                 )
@@ -114,19 +111,23 @@ fun LLMChat(
 
             val chatId = message.chat.id
 
+            val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
+                chatId = chatId,
+            )
+
             if (path == CancelInputCallbackData) {
-                waitingForAnswerInputs.remove(chatId).foldNullable(
-                    ifNull = { logger.w { "No input to cancel" } },
-                    ifNotNull = { inputToCancel ->
-                        afterInput(
-                            chatId = chatId,
-                            inputPath = inputToCancel,
-                            onWaitingForAnswerInput = { page ->
-                                waitingForAnswerInputs[message.chat.id] = page
-                            },
-                        )
-                    }
-                )
+                waitingForAnswerInputs
+                    .consume()
+                    .foldNullable(
+                        ifNull = { logger.w { "No input to cancel" } },
+                        ifNotNull = { inputToCancel ->
+                            afterInput(
+                                chatId = chatId,
+                                inputPath = inputToCancel,
+                                waitingForAnswerInputs = waitingForAnswerInputs,
+                            )
+                        }
+                    )
                 answerCallbackQuery(dataCallbackQuery)
                 return@onDataCallbackQuery
             }
@@ -135,9 +136,7 @@ fun LLMChat(
                 chatId = chatId,
                 encodedPath = path,
                 messageToEdit = message.messageId,
-                onWaitingForAnswerInput = { page ->
-                    waitingForAnswerInputs[message.chat.id] = page
-                },
+                waitingForAnswerInputs = waitingForAnswerInputs,
             )
             answerCallbackQuery(dataCallbackQuery)
         }
@@ -148,7 +147,7 @@ fun LLMChat(
 private suspend fun TelegramBot.afterInput(
     chatId: IdChatIdentifier,
     inputPath: CallbackDataPath,
-    onWaitingForAnswerInput: (CallbackDataPath) -> Unit,
+    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
     handleButtonClick(
         chatId = chatId,
@@ -156,7 +155,7 @@ private suspend fun TelegramBot.afterInput(
             .tryDropLast()!!
             .encode(),
         messageToEdit = null,
-        onWaitingForAnswerInput = onWaitingForAnswerInput,
+        waitingForAnswerInputs = waitingForAnswerInputs,
     )
 }
 
@@ -164,7 +163,7 @@ private suspend fun TelegramBot.handleButtonClick(
     chatId: IdChatIdentifier,
     encodedPath: String,
     messageToEdit: MessageId?,
-    onWaitingForAnswerInput: (CallbackDataPath) -> Unit,
+    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
     val (path, button) = CallbackDataPath
         .tryParse(encodedPath)
@@ -209,7 +208,7 @@ private suspend fun TelegramBot.handleButtonClick(
                         )
                     )
                 )
-                onWaitingForAnswerInput(path)
+                waitingForAnswerInputs.add(path)
             }
         )
 }
