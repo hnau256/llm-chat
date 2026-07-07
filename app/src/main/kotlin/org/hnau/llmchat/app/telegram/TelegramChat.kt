@@ -10,8 +10,8 @@ import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
 import org.hnau.commons.kotlin.foldNullable
 
 class TelegramChat(
-    private val bot: TelegramBot,
-    private val chatId: IdChatIdentifier,
+    val bot: TelegramBot,
+    val id: IdChatIdentifier,
 ) {
 
     suspend fun sendMessage(
@@ -33,14 +33,14 @@ class TelegramChat(
         messageToEdit.foldNullable(
             ifNull = {
                 bot.send(
-                    chatId = chatId,
+                    chatId = id,
                     text = text,
                     replyMarkup = replyMarkup,
                 )
             },
             ifNotNull = { messageId ->
                 bot.editMessageText(
-                    chatId = chatId,
+                    chatId = id,
                     messageId = messageId,
                     text = text,
                     replyMarkup = replyMarkup,
