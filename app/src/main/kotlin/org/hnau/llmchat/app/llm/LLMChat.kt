@@ -22,6 +22,7 @@ import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
+import org.hnau.llmchat.app.telegram.fold
 
 fun LLMChat(
     dbAccessor: DBAccessor,
@@ -100,16 +101,21 @@ private suspend fun BehaviourContext.handleButtonClick(
             return
         }
 
-    when (val type = button.type) {
-        is TelegramPageMessage.Button.Type.Child -> openPage(
-            chatId = chatId,
-            messageToEdit = messageToEdit,
-            path = path,
-            page = type.message,
+    button
+        .type
+        .fold(
+            ifChild = { message ->
+                openPage(
+                    chatId = chatId,
+                    messageToEdit = messageToEdit,
+                    path = path,
+                    page = message,
+                )
+            },
+            ifInput = { onInput ->
+                TODO()
+            }
         )
-
-        is TelegramPageMessage.Button.Type.Input -> TODO()
-    }
 }
 
 private fun findButton(
@@ -125,14 +131,17 @@ private fun findButton(
             .foldNullable(
                 ifNull = { button },
                 ifNotNull = { tail ->
-                    when (val type = button.type) {
-                        is TelegramPageMessage.Button.Type.Child -> findButton(
-                            buttons = type.message.buttons,
-                            path = CallbackDataPath(tail),
+                    button
+                        .type
+                        .fold(
+                            ifChild = { message ->
+                                findButton(
+                                    buttons = message.buttons,
+                                    path = CallbackDataPath(tail),
+                                )
+                            },
+                            ifInput = { null },
                         )
-
-                        is TelegramPageMessage.Button.Type.Input -> null
-                    }
                 }
             )
     }

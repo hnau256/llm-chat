@@ -13,6 +13,7 @@ data class TelegramPageMessage(
         val type: Type,
     ) {
 
+        @Fold
         sealed interface Type {
 
             data class Child(
