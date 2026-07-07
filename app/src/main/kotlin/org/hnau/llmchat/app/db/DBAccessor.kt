@@ -2,8 +2,6 @@ package org.hnau.llmchat.app.db
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.time.measureTimedValue
-import org.flywaydb.core.Flyway
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.llmchat.app.db.migration.migrate
 import java.sql.Connection

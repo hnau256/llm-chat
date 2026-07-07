@@ -10,7 +10,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.chat.ChatServerLauncher
-import org.hnau.llmchat.app.chat.dto.ChatResponse
 import org.hnau.llmchat.app.chat.dto.Port
 import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
 import org.hnau.llmchat.app.chat.telegram.telegramLongPolling

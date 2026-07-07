@@ -1,6 +1,5 @@
 package org.hnau.llmchat.app.chat.telegram
 
-import org.hnau.llmchat.app.chat.telegram.utils.telegramBot
 import dev.inmo.tgbotapi.extensions.api.webhook.setWebhookInfo
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviour
 import dev.inmo.tgbotapi.extensions.utils.updates.retrieving.includeWebhookHandlingInRoute
@@ -16,6 +15,7 @@ import org.hnau.llmchat.app.chat.dto.ChatResponse
 import org.hnau.llmchat.app.chat.dto.Port
 import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
 import org.hnau.llmchat.app.chat.telegram.utils.config
+import org.hnau.llmchat.app.chat.telegram.utils.telegramBot
 
 fun ChatServerLauncher.Companion.telegramWebhook(
     token: TelegramBotToken,
