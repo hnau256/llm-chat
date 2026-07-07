@@ -52,7 +52,7 @@ class LLMChatPages {
             chatId = context.chat.id,
         )
 
-        val buttons = generateButtons(context)
+        val buttons = context.generateButtons()
 
         return waitingForAnswerInputs.consume().foldNullable(
             ifNotNull = { waitingInput ->
@@ -66,7 +66,6 @@ class LLMChatPages {
                         ifInput = { onInput ->
                             onInput(context, text)
                             context.afterInput(
-                                buttons = buttons.get(),
                                 inputPath = waitingInput.path,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
                             )
@@ -141,7 +140,7 @@ class LLMChatPages {
         ) ?: return
 
 
-        val buttons = generateButtons(context)
+        val buttons = context.generateButtons()
 
         context.handleButtonClick(
             buttons = buttons.get(),
@@ -153,12 +152,11 @@ class LLMChatPages {
     }
 
     private suspend fun LLMChatContext.afterInput(
-        buttons: List<TelegramPageMessage.Button>,
         inputPath: CallbackDataPath,
         waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
     ) {
         handleButtonClick(
-            buttons = buttons,
+            buttons = generateButtons().get(),
             path = inputPath.tryDropLast()!!,
             messageToEdit = null,
             waitingForAnswerInputs = waitingForAnswerInputs,
@@ -291,16 +289,14 @@ class LLMChatPages {
         val generateType: suspend LLMChatContext.() -> TelegramPageMessage.Button.Type,
     )
 
-    private fun generateButtons(
-        context: LLMChatContext,
-    ): AsyncLazy<List<TelegramPageMessage.Button>> = AsyncLazy {
+    private fun LLMChatContext.generateButtons(): AsyncLazy<List<TelegramPageMessage.Button>> = AsyncLazy {
         coroutineScope {
             commands.map { command ->
                 async {
                     TelegramPageMessage.Button(
                         id = command.id,
                         text = command.text,
-                        type = command.generateType(context)
+                        type = command.generateType(this@generateButtons)
                     )
                 }
             }.awaitAll()
