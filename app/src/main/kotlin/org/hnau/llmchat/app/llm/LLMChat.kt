@@ -18,7 +18,6 @@ import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
@@ -66,12 +65,9 @@ fun LLMChat(
                         ifChild = { null },
                         ifInput = { onInput ->
                             onInput(text)
-                            handleButtonClick(
+                            afterInput(
                                 chatId = chatId,
-                                encodedPath = inputToAnswer
-                                    .tryDropLast()!!
-                                    .encode(),
-                                messageToEdit = null,
+                                inputPath = inputToAnswer,
                                 onWaitingForAnswerInput = { page ->
                                     waitingForAnswerInputs[message.chat.id] = page
                                 },
@@ -122,12 +118,9 @@ fun LLMChat(
                 waitingForAnswerInputs.remove(chatId).foldNullable(
                     ifNull = { logger.w { "No input to cancel" } },
                     ifNotNull = { inputToCancel ->
-                        handleButtonClick(
+                        afterInput(
                             chatId = chatId,
-                            encodedPath = inputToCancel
-                                .tryDropLast()!!
-                                .encode(),
-                            messageToEdit = null,
+                            inputPath = inputToCancel,
                             onWaitingForAnswerInput = { page ->
                                 waitingForAnswerInputs[message.chat.id] = page
                             },
@@ -150,6 +143,21 @@ fun LLMChat(
         }
 
     }
+}
+
+private suspend fun BehaviourContext.afterInput(
+    chatId: IdChatIdentifier,
+    inputPath: CallbackDataPath,
+    onWaitingForAnswerInput: (CallbackDataPath) -> Unit,
+) {
+    handleButtonClick(
+        chatId = chatId,
+        encodedPath = inputPath
+            .tryDropLast()!!
+            .encode(),
+        messageToEdit = null,
+        onWaitingForAnswerInput = onWaitingForAnswerInput,
+    )
 }
 
 private suspend fun BehaviourContext.handleButtonClick(
