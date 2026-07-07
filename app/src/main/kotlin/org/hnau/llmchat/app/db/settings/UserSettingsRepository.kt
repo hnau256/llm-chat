@@ -1,5 +1,7 @@
 package org.hnau.llmchat.app.db.settings
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.mapper.Mapper
@@ -14,7 +16,20 @@ class UserSettingsRepository(
     private val userId: UserId,
 ) {
 
-    suspend fun get(): UserSettings = db.withConnection { connection ->
+    private val cachedAccessMutex = Mutex()
+
+    private var cached: UserSettings? = null
+
+    suspend fun get(): UserSettings = cachedAccessMutex.withLock {
+        var result = cached
+        if (result == null) {
+            result = read()
+            cached = result
+        }
+        result
+    }
+
+    private suspend fun read(): UserSettings = db.withConnection { connection ->
         connection
             .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
             .apply { setString(1, userId.value) }
@@ -34,6 +49,15 @@ class UserSettingsRepository(
     }
 
     suspend fun save(
+        settings: UserSettings,
+    ) {
+        cachedAccessMutex.withLock {
+            write(settings)
+            cached = settings
+        }
+    }
+
+    private suspend fun write(
         settings: UserSettings,
     ) {
         db.withConnection { connection ->
