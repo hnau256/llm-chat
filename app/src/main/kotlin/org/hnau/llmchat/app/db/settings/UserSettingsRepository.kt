@@ -66,7 +66,7 @@ interface UserSettingsRepository {
                                 )
                                 .apply {
                                     setString(1, userId.value)
-                                    setString(2, settings.let(settingsStringMapper.reverse))
+                                    setString(2, newSettings.let(settingsStringMapper.reverse))
                                 }
                                 .use(PreparedStatement::executeUpdate)
                         }

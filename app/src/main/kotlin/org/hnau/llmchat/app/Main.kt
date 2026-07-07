@@ -3,6 +3,7 @@ package org.hnau.llmchat.app
 import arrow.core.getOrElse
 import arrow.core.right
 import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import co.touchlab.kermit.platformLogWriter
 import io.ktor.http.Url
 import io.ktor.server.cio.CIO
@@ -27,6 +28,7 @@ private val logger = Logger.withTag("Main")
 fun main() {
 
     Logger.setLogWriters(platformLogWriter())
+    Logger.setMinSeverity(Severity.Debug)
 
     val healthPort: Port? = getEnv(
         name = "HEALTH_PORT",
