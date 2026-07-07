@@ -1,6 +1,7 @@
 package org.hnau.llmchat.app.telegram
 
 import dev.inmo.tgbotapi.bot.TelegramBot
+import dev.inmo.tgbotapi.extensions.api.deleteMessage
 import dev.inmo.tgbotapi.extensions.api.edit.text.editMessageText
 import dev.inmo.tgbotapi.extensions.api.send.send
 import dev.inmo.tgbotapi.types.IdChatIdentifier
@@ -18,7 +19,7 @@ class TelegramChat(
         text: String,
         buttons: List<TelegramButton> = emptyList(),
         messageToEdit: MessageId? = null,
-    ) {
+    ): MessageId {
         val replyMarkup = InlineKeyboardMarkup(
             keyboard = buttons.map { button ->
                 listOf(
@@ -30,13 +31,13 @@ class TelegramChat(
             }
         )
 
-        messageToEdit.foldNullable(
+        return messageToEdit.foldNullable(
             ifNull = {
                 bot.send(
                     chatId = id,
                     text = text,
                     replyMarkup = replyMarkup,
-                )
+                ).messageId
             },
             ifNotNull = { messageId ->
                 bot.editMessageText(
@@ -45,7 +46,17 @@ class TelegramChat(
                     text = text,
                     replyMarkup = replyMarkup,
                 )
+                messageId
             }
+        )
+    }
+
+    suspend fun deleteMessage(
+        messageId: MessageId,
+    ) {
+        bot.deleteMessage(
+            chatId = id,
+            messageId = messageId,
         )
     }
 }

@@ -17,7 +17,6 @@ import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.settings.update
 import org.hnau.llmchat.app.llm.LLMChatContext
 import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
-import org.hnau.llmchat.app.llm.logger
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramButton
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
@@ -50,10 +49,10 @@ class LLMChatPages {
         )
 
         return waitingForAnswerInputs.consume().foldNullable(
-            ifNotNull = { inputToAnswer ->
+            ifNotNull = { waitingInput ->
                 findButton(
                     buttons = commands,
-                    path = inputToAnswer,
+                    path = waitingInput.path,
                 )
                     ?.type
                     ?.fold(
@@ -61,7 +60,7 @@ class LLMChatPages {
                         ifInput = { onInput ->
                             onInput(context, text)
                             context.afterInput(
-                                inputPath = inputToAnswer,
+                                inputPath = waitingInput.path,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
                             )
                         }
@@ -121,12 +120,9 @@ class LLMChatPages {
                 .consume()
                 .foldNullable(
                     ifNull = { logger.w { "No input to cancel" } },
-                    ifNotNull = { inputToCancel ->
-                        context.afterInput(
-                            inputPath = inputToCancel,
-                            waitingForAnswerInputs = waitingForAnswerInputs,
-                        )
-                    }
+                    ifNotNull = { waitingInput ->
+                        context.chat.deleteMessage(waitingInput.promptMessageId)
+                    },
                 )
             context.chat.bot.answerCallbackQuery(callback)
             return
@@ -194,7 +190,7 @@ class LLMChatPages {
                     )
                 },
                 ifInput = {
-                    chat.sendMessage(
+                    val promptMessageId = chat.sendMessage(
                         text = "Input '${button.text}",
                         buttons = listOf(
                             TelegramButton(
@@ -209,7 +205,10 @@ class LLMChatPages {
                             )
                         ),
                     )
-                    waitingForAnswerInputs.add(path)
+                    waitingForAnswerInputs.add(
+                        path,
+                        promptMessageId,
+                    )
                 }
             )
     }
