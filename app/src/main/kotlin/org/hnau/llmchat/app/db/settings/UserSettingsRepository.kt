@@ -11,73 +11,72 @@ import org.hnau.llmchat.app.dto.UserId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
-class UserSettingsRepository(
-    private val db: DBAccessor,
-    private val userId: UserId,
-) {
+interface UserSettingsRepository {
 
-    private val cachedAccessMutex = Mutex()
+    val settings: UserSettings
 
-    private var cached: UserSettings? = null
-
-    suspend fun get(): UserSettings = cachedAccessMutex.withLock {
-        var result = cached
-        if (result == null) {
-            result = read()
-            cached = result
-        }
-        result
-    }
-
-    private suspend fun read(): UserSettings = db.withConnection { connection ->
-        connection
-            .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
-            .apply { setString(1, userId.value) }
-            .use { statement ->
-                statement
-                    .executeQuery()
-                    .takeIf(ResultSet::next)
-                    .foldNullable(
-                        ifNull = { UserSettings() },
-                        ifNotNull = { resultSet ->
-                            resultSet
-                                .getString(SettingsColumn)
-                                .let(settingsStringMapper.direct)
-                        }
-                    )
-            }
-    }
-
-    suspend fun save(
-        settings: UserSettings,
-    ) {
-        cachedAccessMutex.withLock {
-            write(settings)
-            cached = settings
-        }
-    }
-
-    private suspend fun write(
-        settings: UserSettings,
-    ) {
-        db.withConnection { connection ->
-            connection
-                .prepareStatement(
-                    """
-                    INSERT INTO $TableName ($UserIdColumn, $SettingsColumn) VALUES (?, ?)
-                    ON CONFLICT($UserIdColumn) DO UPDATE SET $SettingsColumn = excluded.$SettingsColumn
-                    """.trimIndent()
-                )
-                .apply {
-                    setString(1, userId.value)
-                    setString(2, settings.let(settingsStringMapper.reverse))
-                }
-                .use(PreparedStatement::executeUpdate)
-        }
-    }
+    suspend fun update(
+        newSettings: UserSettings,
+    )
 
     @Suppress("ConstPropertyName")
     companion object {
+
+        suspend fun create(
+            db: DBAccessor,
+            userId: UserId,
+        ): UserSettingsRepository {
+
+            var cached = db.withConnection { connection ->
+                connection
+                    .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
+                    .apply { setString(1, userId.value) }
+                    .use { statement ->
+                        statement
+                            .executeQuery()
+                            .takeIf(ResultSet::next)
+                            .foldNullable(
+                                ifNull = { UserSettings() },
+                                ifNotNull = { resultSet ->
+                                    resultSet
+                                        .getString(SettingsColumn)
+                                        .let(settingsStringMapper.direct)
+                                }
+                            )
+                    }
+            }
+
+            return object : UserSettingsRepository {
+                override val settings: UserSettings
+                    get() = cached
+
+                private val updateMutex = Mutex()
+
+                override suspend fun update(
+                    newSettings: UserSettings,
+                ) {
+                    updateMutex.withLock {
+                        db.withConnection { connection ->
+                            connection
+                                .prepareStatement(
+                                    """
+                                            INSERT INTO $TableName ($UserIdColumn, $SettingsColumn) VALUES (?, ?)
+                                            ON CONFLICT($UserIdColumn) DO UPDATE SET $SettingsColumn = excluded.$SettingsColumn
+                                        """.trimIndent()
+                                )
+                                .apply {
+                                    setString(1, userId.value)
+                                    setString(2, settings.let(settingsStringMapper.reverse))
+                                }
+                                .use(PreparedStatement::executeUpdate)
+                        }
+                        cached = newSettings
+                    }
+                }
+
+            }
+
+        }
 
         private const val TableName = "user_settings"
 

@@ -322,7 +322,7 @@ class LLMChatPages {
                             text = "Base prompt",
                             type = TelegramPageMessage.Button.Type.Child(
                                 TelegramPageMessage(
-                                    text = "Base prompt: ${userSettings.get().basePrompt}",
+                                    text = "Base prompt: ${userSettings.settings.basePrompt}",
                                     buttons = listOf(
                                         TelegramPageMessage.Button(
                                             id = CallbackDataPath.Entry("edit"),

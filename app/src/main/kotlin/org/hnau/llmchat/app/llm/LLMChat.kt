@@ -17,13 +17,13 @@ fun LLMChat(
 
     val pages = LLMChatPages()
 
-    val createContext: (IdChatIdentifier) -> LLMChatContext = { chatId ->
+    val createContext: suspend (IdChatIdentifier) -> LLMChatContext = { chatId ->
         LLMChatContext(
             chat = TelegramChat(
                 bot = this,
                 id = chatId,
             ),
-            userSettings = UserSettingsRepository(
+            userSettings = UserSettingsRepository.create(
                 db = dbAccessor,
                 userId = UserId(chatId.chatId.long.toString())
             ),
