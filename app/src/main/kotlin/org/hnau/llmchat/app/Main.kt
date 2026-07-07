@@ -50,18 +50,16 @@ fun main() {
         parser = Port.parser,
     ).getOrElse { Port.createOrNull(8080)!! }
 
-    val dbAccessor = DBAccessor(
-        adapter = DBAdapter.sqlite(
-            databaseFile = getRequiredEnv(
-                name = "DB_PATH",
-                parser = fileParser,
-            )
-        )
-    )
-
     runBlocking {
 
-        dbAccessor.withConnection {  }
+        val dbAccessor = DBAccessor.create(
+            adapter = DBAdapter.sqlite(
+                databaseFile = getRequiredEnv(
+                    name = "DB_PATH",
+                    parser = fileParser,
+                )
+            )
+        )
 
         healthPort.foldNullable(
             ifNull = { logger.d { "No need to launch health server" } },
