@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.llm
+package org.hnau.llmchat.app.db.settings
 
 import kotlinx.serialization.Serializable
 

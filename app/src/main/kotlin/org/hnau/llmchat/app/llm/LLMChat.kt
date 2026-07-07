@@ -4,6 +4,8 @@ import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.llmchat.app.chat.dto.ChatRequest
 import org.hnau.llmchat.app.chat.dto.ChatResponse
 import org.hnau.llmchat.app.db.DBAccessor
+import org.hnau.llmchat.app.db.settings.UserSettings
+import org.hnau.llmchat.app.db.settings.UserSettingsRepository
 
 @Loggable
 class LLMChat(
