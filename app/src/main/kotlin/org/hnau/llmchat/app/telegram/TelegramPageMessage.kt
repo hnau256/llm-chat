@@ -3,7 +3,7 @@ package org.hnau.llmchat.app.telegram
 import org.hnau.commons.gen.fold.annotations.Fold
 
 data class TelegramPageMessage(
-    val generateText: () -> String,
+    val generateText: suspend () -> String,
     val buttons: List<Button>,
 ) {
 
