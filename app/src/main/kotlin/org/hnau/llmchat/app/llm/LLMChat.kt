@@ -1,14 +1,8 @@
 package org.hnau.llmchat.app.llm
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
 import arrow.core.tail
 import arrow.core.toNonEmptyListOrNull
-import dev.inmo.kslog.common.logger
-import dev.inmo.kslog.common.w
 import dev.inmo.tgbotapi.extensions.api.bot.setMyCommands
-import dev.inmo.tgbotapi.extensions.api.edit.reply_markup.editMessageReplyMarkup
 import dev.inmo.tgbotapi.extensions.api.edit.text.editMessageText
 import dev.inmo.tgbotapi.extensions.api.send.send
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContext
@@ -157,7 +151,6 @@ private suspend fun BehaviourContext.openPage(
                     }
                 )
                 path.tryDropLast()?.let { pathToGoBack ->
-                    logger.w { "QWERTY. Adding back button with path: $pathToGoBack" }
                     add(
                         Pair(
                             first = "Back",

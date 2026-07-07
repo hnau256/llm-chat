@@ -3,7 +3,6 @@ package org.hnau.llmchat.app.telegram
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import arrow.core.toNonEmptyListOrThrow
-import arrow.core.toNonEmptySetOrNull
 import org.hnau.commons.kotlin.it
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.plus
