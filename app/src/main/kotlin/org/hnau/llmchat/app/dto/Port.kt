@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.chat.dto
+package org.hnau.llmchat.app.dto
 
 @JvmInline
 value class Port private constructor(

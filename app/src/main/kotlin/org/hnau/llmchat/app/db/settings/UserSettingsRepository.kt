@@ -4,8 +4,8 @@ import kotlinx.serialization.json.Json
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.toMapper
-import org.hnau.llmchat.app.chat.dto.UserId
 import org.hnau.llmchat.app.db.DBAccessor
+import org.hnau.llmchat.app.dto.UserId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
@@ -18,7 +18,7 @@ class UserSettingsRepository(
     ): UserSettings = db.withConnection { connection ->
         connection
             .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
-            .apply { setString(1, userId.userId) }
+            .apply { setString(1, userId.value) }
             .use { statement ->
                 statement
                     .executeQuery()
@@ -47,7 +47,7 @@ class UserSettingsRepository(
                     """.trimIndent()
                 )
                 .apply {
-                    setString(1, userId.userId)
+                    setString(1, userId.value)
                     setString(2, settings.let(settingsStringMapper.reverse))
                 }
                 .use(PreparedStatement::executeUpdate)

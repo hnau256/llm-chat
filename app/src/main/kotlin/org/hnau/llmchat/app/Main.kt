@@ -1,6 +1,7 @@
 package org.hnau.llmchat.app
 
 import arrow.core.getOrElse
+import arrow.core.right
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.platformLogWriter
 import io.ktor.http.Url
@@ -9,15 +10,13 @@ import io.ktor.server.engine.ApplicationEngineFactory
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.llmchat.app.chat.ChatServerLauncher
-import org.hnau.llmchat.app.chat.dto.Port
-import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
-import org.hnau.llmchat.app.chat.telegram.telegramLongPolling
-import org.hnau.llmchat.app.chat.telegram.telegramWebhook
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
+import org.hnau.llmchat.app.dto.Port
 import org.hnau.llmchat.app.llm.LLMChat
+import org.hnau.llmchat.app.telegram.TelegramWebhookConfig
+import org.hnau.llmchat.app.telegram.launchTelegramBot
 import org.hnau.llmchat.app.utils.fileParser
 import org.hnau.llmchat.app.utils.getEnv
 import org.hnau.llmchat.app.utils.getRequiredEnv
@@ -34,9 +33,9 @@ fun main() {
         parser = Port.parser,
     ).getOrNull()
 
-    val telegramToken: TelegramBotToken = getRequiredEnv(
+    val telegramToken: String = getRequiredEnv(
         name = "TELEGRAM_BOT_TOKEN",
-        parser = TelegramBotToken.parser,
+        parser = { it.right() },
     )
 
     val telegramWebhookUrl: Url? = getEnv(
@@ -49,16 +48,12 @@ fun main() {
         parser = Port.parser,
     ).getOrElse { Port.createOrNull(8080)!! }
 
-    runBlocking {
+    val databaseFile = getRequiredEnv(
+        name = "DB_PATH",
+        parser = fileParser,
+    )
 
-        val dbAccessor = DBAccessor.create(
-            adapter = DBAdapter.sqlite(
-                databaseFile = getRequiredEnv(
-                    name = "DB_PATH",
-                    parser = fileParser,
-                )
-            )
-        )
+    runBlocking {
 
         healthPort.foldNullable(
             ifNull = { logger.d { "No need to launch health server" } },
@@ -73,30 +68,22 @@ fun main() {
             }
         )
 
-        val chatServerLauncher: ChatServerLauncher = telegramWebhookUrl.foldNullable(
-            ifNull = {
-                logger.d { "Launching telegram bot in long polling mode" }
-                ChatServerLauncher.telegramLongPolling(
-                    token = telegramToken,
+        launchTelegramBot(
+            token = telegramToken,
+            webhook = telegramWebhookUrl?.let { url ->
+                TelegramWebhookConfig(
+                    url = url,
+                    port = telegramWebhookPort,
+                    serverFactory = serverFactory,
                 )
             },
-            ifNotNull = { url ->
-                logger.d { "Launching telegram bot in webhook mode. Url:$url, port:${telegramWebhookPort.value}" }
-                ChatServerLauncher.telegramWebhook(
-                    token = telegramToken,
-                    port = telegramWebhookPort,
-                    factory = serverFactory,
-                    webhookUrl = url,
-                )
-            }
-        )
-
-        val chat = LLMChat(
-            dbAccessor = dbAccessor,
-        )
-
-        chatServerLauncher.launchChatServer(
-            callback = chat::handleRequest,
+            config = LLMChat(
+                dbAccessor = DBAccessor.create(
+                    adapter = DBAdapter.sqlite(
+                        databaseFile = databaseFile
+                    )
+                ),
+            ),
         )
     }
 }

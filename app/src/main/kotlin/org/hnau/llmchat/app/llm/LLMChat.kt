@@ -1,58 +1,100 @@
 package org.hnau.llmchat.app.llm
 
-import org.hnau.commons.gen.loggable.annotations.Loggable
-import org.hnau.llmchat.app.chat.dto.ChatRequest
-import org.hnau.llmchat.app.chat.dto.ChatResponse
+import dev.inmo.tgbotapi.extensions.api.bot.setMyCommands
+import dev.inmo.tgbotapi.extensions.api.send.send
+import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContextReceiver
+import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onDataCallbackQuery
+import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onText
+import dev.inmo.tgbotapi.types.BotCommand
+import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
+import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
+import org.hnau.commons.kotlin.foldNullable
+import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
-import org.hnau.llmchat.app.db.settings.UserSettings
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
+import org.hnau.llmchat.app.telegram.TelegramPageMessage
 
-@Loggable
-class LLMChat(
+fun LLMChat(
     dbAccessor: DBAccessor,
-) {
+): BehaviourContextReceiver<Unit> {
 
-    private val userSettingsRepository = UserSettingsRepository(dbAccessor)
+    val userSettingsRepository = UserSettingsRepository(dbAccessor)
 
-    suspend fun handleRequest(
-        request: ChatRequest,
-    ): ChatResponse {
-        logger.i { "Handling message from user ${request.userId}: ${request.message}" }
+    return {
 
-        return when {
-            request.message == "/settings" -> handleSettings(request.userId)
-            request.message.startsWith("/prompt ") -> handleSetPrompt(request.userId, request.message)
-            else -> handleMessage(request)
-        }
-    }
-
-    private suspend fun handleSettings(userId: org.hnau.llmchat.app.chat.dto.UserId): ChatResponse {
-        val settings = userSettingsRepository.get(userId)
-        val message = if (settings.basePrompt.isNotEmpty()) {
-            "Текущий basePrompt: ${settings.basePrompt}"
-        } else {
-            "BasePrompt не установлен"
-        }
-        return ChatResponse(message = message)
-    }
-
-    private suspend fun handleSetPrompt(
-        userId: org.hnau.llmchat.app.chat.dto.UserId,
-        message: String,
-    ): ChatResponse {
-        val prompt = message.removePrefix("/prompt ").trim()
-        if (prompt.isEmpty()) {
-            return ChatResponse(message = "Использование: /prompt <текст>")
-        }
-        userSettingsRepository.save(userId, UserSettings(basePrompt = prompt))
-        return ChatResponse(message = "BasePrompt установлен: $prompt")
-    }
-
-    private suspend fun handleMessage(request: ChatRequest): ChatResponse {
-        val settings = userSettingsRepository.get(request.userId)
-        logger.i { "Responding to ${request.userId} with basePrompt='${settings.basePrompt}'" }
-        return ChatResponse(
-            message = "You said: ${request.message}"
+        setMyCommands(
+            rootPages
+                .keys.map { command ->
+                    BotCommand(command, command)
+                }
         )
+
+        onText { message ->
+
+            val chatId = message.chat.id
+
+            val text = message.content.text
+            text
+                .trim()
+                .lowercase()
+                .removePrefixOrNull("/")
+                .foldNullable(
+                    ifNull = {
+                        send(
+                            chatId = chatId,
+                            text = "Answer for '$text'"
+                        )
+                    },
+                    ifNotNull = { command ->
+                        rootPages[command].foldNullable(
+                            ifNull = {
+                                send(
+                                    chatId = chatId,
+                                    text = "Unknown command '$text'",
+                                )
+                            },
+                            ifNotNull = { page ->
+                                send(
+                                    chatId = chatId,
+                                    text = page.generateText(),
+                                    replyMarkup = InlineKeyboardMarkup(
+                                        listOf(
+                                            page.buttons.map { button ->
+                                                CallbackDataInlineKeyboardButton(
+                                                    text = button.text,
+                                                    callbackData = command + "-" + button.id,
+                                                )
+                                            }
+                                        )
+                                    )
+                                )
+                            }
+                        )
+                    }
+                )
+        }
+
+        onDataCallbackQuery { dataCallbackQuery ->
+
+        }
+
     }
 }
+
+private val rootPages: Map<String, TelegramPageMessage> = mapOf(
+    "settings" to TelegramPageMessage(
+        generateText = { "Settings" },
+        buttons = listOf(
+            TelegramPageMessage.Button(
+                id = "basePrompt",
+                text = "Base prompt",
+                type = TelegramPageMessage.Button.Type.Child(
+                    TelegramPageMessage(
+                        generateText = { "Base prompt: QWERTY" },
+                        buttons = emptyList(),
+                    )
+                )
+            )
+        )
+    )
+)

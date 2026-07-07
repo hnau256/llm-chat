@@ -4,7 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.llmchat.app.chat.dto.Port
+import org.hnau.llmchat.app.dto.Port
 
 private val portParser: (String) -> Either<String, Port> = { raw ->
     raw.toIntOrNull().foldNullable(
