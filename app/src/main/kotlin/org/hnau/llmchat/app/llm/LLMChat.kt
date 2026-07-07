@@ -3,11 +3,11 @@ package org.hnau.llmchat.app.llm
 import arrow.core.tail
 import arrow.core.toNonEmptyListOrNull
 import co.touchlab.kermit.Logger
+import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.extensions.api.answers.answerCallbackQuery
 import dev.inmo.tgbotapi.extensions.api.bot.setMyCommands
 import dev.inmo.tgbotapi.extensions.api.edit.text.editMessageText
 import dev.inmo.tgbotapi.extensions.api.send.send
-import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContext
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContextReceiver
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onDataCallbackQuery
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onText
@@ -145,7 +145,7 @@ fun LLMChat(
     }
 }
 
-private suspend fun BehaviourContext.afterInput(
+private suspend fun TelegramBot.afterInput(
     chatId: IdChatIdentifier,
     inputPath: CallbackDataPath,
     onWaitingForAnswerInput: (CallbackDataPath) -> Unit,
@@ -160,7 +160,7 @@ private suspend fun BehaviourContext.afterInput(
     )
 }
 
-private suspend fun BehaviourContext.handleButtonClick(
+private suspend fun TelegramBot.handleButtonClick(
     chatId: IdChatIdentifier,
     encodedPath: String,
     messageToEdit: MessageId?,
@@ -242,7 +242,7 @@ private fun findButton(
             )
     }
 
-private suspend fun BehaviourContext.openPage(
+private suspend fun TelegramBot.openPage(
     chatId: IdChatIdentifier,
     messageToEdit: MessageId?,
     path: CallbackDataPath,
