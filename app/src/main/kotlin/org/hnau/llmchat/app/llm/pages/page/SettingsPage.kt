@@ -13,7 +13,7 @@ suspend fun LLMChatContext.generateSettingsPage(): TelegramPageMessage = Telegra
             id = CallbackDataPath.Entry("chooseProvider"),
             text = "Provider" + userSettings.settings.llmProviderConfig.foldNullable(
                 ifNull = { "" },
-                ifNotNull = { providerConfig -> " ${providerConfig.name}" },
+                ifNotNull = { providerConfig -> " (${providerConfig.name})" },
             ),
             type = TelegramPageMessage.Button.Type.Child(
                 message = generateChooseProviderPage()

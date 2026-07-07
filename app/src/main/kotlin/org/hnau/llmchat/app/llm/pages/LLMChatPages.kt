@@ -18,10 +18,10 @@ import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
-import org.hnau.llmchat.app.db.settings.update
 import org.hnau.llmchat.app.llm.LLMChatContext
 import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
 import org.hnau.llmchat.app.llm.pages.page.generateSettingsPage
+import org.hnau.llmchat.app.telegram.ButtonResult
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramButton
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
@@ -64,13 +64,16 @@ class LLMChatPages {
                     ?.type
                     ?.fold(
                         ifChild = { null },
+                        ifClick = { null },
                         ifInput = { onInput ->
-                            onInput(context, text)
-                            context.afterInput(
-                                inputPath = waitingInput.path,
+                            val result = onInput(context, text)
+                            context.handleButtonResult(
+                                buttonResult = result,
+                                buttonPath = waitingInput.path,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
+                                messageToEdit = null,
                             )
-                        }
+                        },
                     )
                     .foldNullable(
                         ifNotNull = { true },
@@ -152,16 +155,29 @@ class LLMChatPages {
         context.chat.bot.answerCallbackQuery(callback)
     }
 
-    private suspend fun LLMChatContext.afterInput(
-        inputPath: CallbackDataPath,
+    private suspend fun LLMChatContext.handleButtonResult(
+        buttonResult: ButtonResult,
+        buttonPath: CallbackDataPath,
         waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
+        messageToEdit: MessageId?,
     ) {
-        handleButtonClick(
-            buttons = generateButtons().get(),
-            path = inputPath.tryDropLast()!!,
-            messageToEdit = null,
-            waitingForAnswerInputs = waitingForAnswerInputs,
-        )
+        buttonPath
+            .tryGoBack(
+                count = buttonResult.navigateBackCount + 1,
+            )
+            .foldNullable(
+                ifNull = {
+                    chat.sendMessage("Unable handle button click")
+                },
+                ifNotNull = { newPath ->
+                    handleButtonClick(
+                        buttons = generateButtons().get(),
+                        path = newPath,
+                        messageToEdit = messageToEdit,
+                        waitingForAnswerInputs = waitingForAnswerInputs,
+                    )
+                }
+            )
     }
 
     private suspend fun LLMChatContext.tryParseEncodedPathOrLogError(
@@ -201,6 +217,15 @@ class LLMChatPages {
                         messageToEdit = messageToEdit,
                         path = path,
                         page = message,
+                    )
+                },
+                ifClick = { onClick ->
+                    val result = onClick()
+                    handleButtonResult(
+                        buttonResult = result,
+                        buttonPath = path,
+                        waitingForAnswerInputs = waitingForAnswerInputs,
+                        messageToEdit = messageToEdit,
                     )
                 },
                 ifInput = {
@@ -243,13 +268,14 @@ class LLMChatPages {
                         button
                             .type
                             .fold(
+                                ifInput = { null },
+                                ifClick = { null },
                                 ifChild = { message ->
                                     findButton(
                                         buttons = message.buttons,
                                         path = CallbackDataPath(tail),
                                     )
                                 },
-                                ifInput = { null },
                             )
                     }
                 )
@@ -272,7 +298,7 @@ class LLMChatPages {
                         )
                     }
                 )
-                path.tryDropLast()?.let { pathToGoBack ->
+                path.tryGoBack()?.let { pathToGoBack ->
                     add(
                         TelegramButton(
                             title = "Back",

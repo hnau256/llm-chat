@@ -24,8 +24,10 @@ data class CallbackDataPath(
         entries = entries + entry,
     )
 
-    fun tryDropLast(): CallbackDataPath? = entries
-        .dropLast(1)
+    fun tryGoBack(
+        count: Int = 1,
+    ): CallbackDataPath? = entries
+        .dropLast(count)
         .toNonEmptyListOrNull()
         ?.let(::CallbackDataPath)
 

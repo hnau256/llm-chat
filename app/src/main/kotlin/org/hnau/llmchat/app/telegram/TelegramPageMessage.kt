@@ -21,8 +21,12 @@ data class TelegramPageMessage(
                 val message: TelegramPageMessage,
             ) : Type
 
+            data class Click(
+                val onClick: suspend LLMChatContext.() -> ButtonResult,
+            ) : Type
+
             data class Input(
-                val onInput: suspend LLMChatContext.(String) -> Unit,
+                val onInput: suspend LLMChatContext.(String) -> ButtonResult,
             ) : Type
         }
     }
