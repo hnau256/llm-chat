@@ -286,54 +286,58 @@ class LLMChatPages {
     private data class Command(
         val id: CallbackDataPath.Entry,
         val text: String,
-        val generateType: suspend LLMChatContext.() -> TelegramPageMessage.Button.Type,
+        val generateMessage: suspend LLMChatContext.() -> TelegramPageMessage,
     )
 
-    private fun LLMChatContext.generateButtons(): AsyncLazy<List<TelegramPageMessage.Button>> = AsyncLazy {
-        coroutineScope {
-            commands.map { command ->
-                async {
-                    TelegramPageMessage.Button(
-                        id = command.id,
-                        text = command.text,
-                        type = command.generateType(this@generateButtons)
-                    )
-                }
-            }.awaitAll()
+    private fun LLMChatContext.generateButtons(): AsyncLazy<List<TelegramPageMessage.Button>> =
+        AsyncLazy {
+            coroutineScope {
+                commands
+                    .map { command ->
+                        async {
+                            val message = command.generateMessage(this@generateButtons)
+                            TelegramPageMessage.Button(
+                                id = command.id,
+                                text = command.text,
+                                type = TelegramPageMessage.Button.Type.Child(
+                                    message = message,
+                                )
+                            )
+                        }
+                    }
+                    .awaitAll()
+            }
         }
-    }
 
     private val commands: List<Command> = listOf(
         Command(
             id = CallbackDataPath.Entry("settings"),
             text = "Settings",
-            generateType = {
-                TelegramPageMessage.Button.Type.Child(
-                    TelegramPageMessage(
-                        text = "Settings",
-                        buttons = listOf(
-                            TelegramPageMessage.Button(
-                                id = CallbackDataPath.Entry("basePrompt"),
-                                text = "Base prompt",
-                                type = TelegramPageMessage.Button.Type.Child(
-                                    TelegramPageMessage(
-                                        text = "Base prompt: ${userSettings.get().basePrompt}",
-                                        buttons = listOf(
-                                            TelegramPageMessage.Button(
-                                                id = CallbackDataPath.Entry("edit"),
-                                                text = "Edit",
-                                                type = TelegramPageMessage.Button.Type.Input(
-                                                    onInput = { input ->
-                                                        userSettings.update { copy(basePrompt = input) }
-                                                    }
-                                                )
+            generateMessage = {
+                TelegramPageMessage(
+                    text = "Settings",
+                    buttons = listOf(
+                        TelegramPageMessage.Button(
+                            id = CallbackDataPath.Entry("basePrompt"),
+                            text = "Base prompt",
+                            type = TelegramPageMessage.Button.Type.Child(
+                                TelegramPageMessage(
+                                    text = "Base prompt: ${userSettings.get().basePrompt}",
+                                    buttons = listOf(
+                                        TelegramPageMessage.Button(
+                                            id = CallbackDataPath.Entry("edit"),
+                                            text = "Edit",
+                                            type = TelegramPageMessage.Button.Type.Input(
+                                                onInput = { input ->
+                                                    userSettings.update { copy(basePrompt = input) }
+                                                }
                                             )
-                                        ),
-                                    )
+                                        )
+                                    ),
                                 )
                             )
-                        ),
-                    )
+                        )
+                    ),
                 )
             }
         )
