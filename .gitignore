@@ -4,3 +4,4 @@ local.properties
 .kotlin/
 build
 .DS_Store
+*.sqlite

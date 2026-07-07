@@ -16,6 +16,7 @@ import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
 import org.hnau.llmchat.app.chat.telegram.telegramLongPolling
 import org.hnau.llmchat.app.chat.telegram.telegramWebhook
 import org.hnau.llmchat.app.db.DBAccessor
+import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
 import org.hnau.llmchat.app.llm.LLMChat
 import org.hnau.llmchat.app.utils.fileParser
@@ -49,14 +50,18 @@ fun main() {
         parser = Port.parser,
     ).getOrElse { Port.createOrNull(8080)!! }
 
-    val dbAccessor: DBAccessor = DBAccessor.sqlite(
-        databaseFile = getRequiredEnv(
-            name = "DB_PATH",
-            parser = fileParser,
+    val dbAccessor = DBAccessor(
+        adapter = DBAdapter.sqlite(
+            databaseFile = getRequiredEnv(
+                name = "DB_PATH",
+                parser = fileParser,
+            )
         )
     )
 
     runBlocking {
+
+        dbAccessor.withConnection {  }
 
         healthPort.foldNullable(
             ifNull = { logger.d { "No need to launch health server" } },
