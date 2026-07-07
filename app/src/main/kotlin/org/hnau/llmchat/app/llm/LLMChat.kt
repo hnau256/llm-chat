@@ -35,13 +35,14 @@ private val logger = Logger.withTag("LLMChat")
 
 fun LLMChat(
     dbAccessor: DBAccessor,
-): BehaviourContextReceiver<Unit> {
+): BehaviourContextReceiver<Unit> = {
 
     val waitingForAnswerInputs = WaitingForAnswerInputs()
 
-    val createContext: TelegramBot.(IdChatIdentifier) -> LLMChatContext = { chatId ->
+    val createContext: (IdChatIdentifier) -> LLMChatContext = { chatId ->
         LLMChatContext(
-            chat = toChat(
+            chat = TelegramChat(
+                bot = this,
                 chatId = chatId,
             ),
             userSettings = UserSettingsRepository(
@@ -51,160 +52,116 @@ fun LLMChat(
         )
     }
 
-    return {
+    setMyCommands(
+        commands.map { command ->
+            BotCommand(
+                command = command.id.id,
+                description = command.text,
+            )
+        }
+    )
 
-        setMyCommands(
-            commands.map { command ->
-                BotCommand(
-                    command.id.id,
-                    command.text,
-                )
-            }
+    onText { message ->
+
+        val chatId = message.chat.id
+
+        val context = createContext(chatId)
+
+        val text = message.content.text
+
+        val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
+            chatId = chatId,
         )
 
-        onText { message ->
-
-            val chatId = message.chat.id
-
-            val context = createContext(chatId)
-
-            val text = message.content.text
-
-            val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
-                chatId = chatId,
+        waitingForAnswerInputs.consume()?.let { inputToAnswer ->
+            findButton(
+                buttons = commands,
+                path = inputToAnswer,
             )
-
-            waitingForAnswerInputs.consume()?.let { inputToAnswer ->
-                findButton(
-                    buttons = commands,
-                    path = inputToAnswer,
-                )
-                    ?.type
-                    ?.fold(
-                        ifChild = { null },
-                        ifInput = { onInput ->
-                            onInput(context, text)
-                            context.afterInput(
-                                inputPath = inputToAnswer,
-                                waitingForAnswerInputs = waitingForAnswerInputs,
-                            )
-                        }
-                    )
-                    ?: context.chat.sendMessage(
-                        text = "Unable handle input to answer",
-                    )
-                return@onText
-            }
-
-            text
-                .trim()
-                .lowercase()
-                .removePrefixOrNull("/")
-                .foldNullable(
-                    ifNull = {
-                        context.chat.sendMessage(
-                            text = "Answer for '$text'",
-                        )
-                    },
-                    ifNotNull = { command ->
-
-                        val path = context
-                            .tryParseEncodedPathOrLogError(
-                                encodedPath = command,
-                            )
-                            ?: return@foldNullable
-
-                        context.handleButtonClick(
-                            path = path,
-                            messageToEdit = null,
+                ?.type
+                ?.fold(
+                    ifChild = { null },
+                    ifInput = { onInput ->
+                        onInput(context, text)
+                        context.afterInput(
+                            inputPath = inputToAnswer,
                             waitingForAnswerInputs = waitingForAnswerInputs,
                         )
                     }
                 )
+                ?: context.chat.sendMessage(
+                    text = "Unable handle input to answer",
+                )
+            return@onText
         }
 
-        onDataCallbackQuery { dataCallbackQuery ->
-            val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
-            val encodedPath = dataCallbackQuery.data
-
-            val chatId = message.chat.id
-
-            val context = createContext(chatId)
-
-            val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
-                chatId = chatId,
-            )
-
-            if (encodedPath == CancelInputCallbackData) {
-                waitingForAnswerInputs
-                    .consume()
-                    .foldNullable(
-                        ifNull = { logger.w { "No input to cancel" } },
-                        ifNotNull = { inputToCancel ->
-                            context.afterInput(
-                                inputPath = inputToCancel,
-                                waitingForAnswerInputs = waitingForAnswerInputs,
-                            )
-                        }
+        text
+            .trim()
+            .lowercase()
+            .removePrefixOrNull("/")
+            .foldNullable(
+                ifNull = {
+                    context.chat.sendMessage(
+                        text = "Answer for '$text'",
                     )
-                answerCallbackQuery(dataCallbackQuery)
-                return@onDataCallbackQuery
-            }
+                },
+                ifNotNull = { command ->
 
-            val path = context.tryParseEncodedPathOrLogError(
-                encodedPath = encodedPath,
-            ) ?: return@onDataCallbackQuery
+                    val path = context
+                        .tryParseEncodedPathOrLogError(
+                            encodedPath = command,
+                        )
+                        ?: return@foldNullable
 
-            context.handleButtonClick(
-                path = path,
-                messageToEdit = message.messageId,
-                waitingForAnswerInputs = waitingForAnswerInputs,
+                    context.handleButtonClick(
+                        path = path,
+                        messageToEdit = null,
+                        waitingForAnswerInputs = waitingForAnswerInputs,
+                    )
+                }
             )
+    }
+
+    onDataCallbackQuery { dataCallbackQuery ->
+        val message = dataCallbackQuery.message ?: return@onDataCallbackQuery
+        val encodedPath = dataCallbackQuery.data
+
+        val chatId = message.chat.id
+
+        val context = createContext(chatId)
+
+        val waitingForAnswerInputs = waitingForAnswerInputs.forChat(
+            chatId = chatId,
+        )
+
+        if (encodedPath == CancelInputCallbackData) {
+            waitingForAnswerInputs
+                .consume()
+                .foldNullable(
+                    ifNull = { logger.w { "No input to cancel" } },
+                    ifNotNull = { inputToCancel ->
+                        context.afterInput(
+                            inputPath = inputToCancel,
+                            waitingForAnswerInputs = waitingForAnswerInputs,
+                        )
+                    }
+                )
             answerCallbackQuery(dataCallbackQuery)
+            return@onDataCallbackQuery
         }
 
-    }
-}
+        val path = context.tryParseEncodedPathOrLogError(
+            encodedPath = encodedPath,
+        ) ?: return@onDataCallbackQuery
 
-private fun TelegramBot.toChat(
-    chatId: IdChatIdentifier,
-): TelegramChat = object : TelegramChat {
-
-    override suspend fun sendMessage(
-        text: String,
-        buttons: List<TelegramButton>,
-        messageToEdit: MessageId?
-    ) {
-
-        val replyMarkup = InlineKeyboardMarkup(
-            keyboard = buttons.map { button ->
-                listOf(
-                    CallbackDataInlineKeyboardButton(
-                        text = button.title,
-                        callbackData = button.path.encode(),
-                    )
-                )
-            }
+        context.handleButtonClick(
+            path = path,
+            messageToEdit = message.messageId,
+            waitingForAnswerInputs = waitingForAnswerInputs,
         )
-
-        messageToEdit.foldNullable(
-            ifNull = {
-                send(
-                    chatId = chatId,
-                    text = text,
-                    replyMarkup = replyMarkup,
-                )
-            },
-            ifNotNull = { messageId ->
-                editMessageText(
-                    chatId = chatId,
-                    messageId = messageId,
-                    text = text,
-                    replyMarkup = replyMarkup,
-                )
-            }
-        )
+        answerCallbackQuery(dataCallbackQuery)
     }
+
 }
 
 private suspend fun LLMChatContext.afterInput(
