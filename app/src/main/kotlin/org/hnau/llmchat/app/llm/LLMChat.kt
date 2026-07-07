@@ -12,10 +12,9 @@ import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onText
 import dev.inmo.tgbotapi.extensions.utils.extensions.raw.message
 import dev.inmo.tgbotapi.types.BotCommand
 import dev.inmo.tgbotapi.types.IdChatIdentifier
+import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
-import dev.inmo.tgbotapi.types.message.abstracts.ContentMessage
-import dev.inmo.tgbotapi.types.message.content.MessageContent
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
@@ -72,7 +71,7 @@ fun LLMChat(
             handleButtonClick(
                 chatId = message.chat.id,
                 encodedPath = dataCallbackQuery.data,
-                messageToEdit = message,
+                messageToEdit = message.messageId,
             )
         }
 
@@ -82,7 +81,7 @@ fun LLMChat(
 private suspend fun BehaviourContext.handleButtonClick(
     chatId: IdChatIdentifier,
     encodedPath: String,
-    messageToEdit: ContentMessage<MessageContent>?,
+    messageToEdit: MessageId?,
 ) {
     val (path, button) = CallbackDataPath
         .tryParse(encodedPath)
@@ -148,7 +147,7 @@ private fun findButton(
 
 private suspend fun BehaviourContext.openPage(
     chatId: IdChatIdentifier,
-    messageToEdit: ContentMessage<MessageContent>?,
+    messageToEdit: MessageId?,
     path: CallbackDataPath,
     page: TelegramPageMessage,
 ) {
@@ -192,7 +191,7 @@ private suspend fun BehaviourContext.openPage(
         ifNotNull = { message ->
             editMessageText(
                 chatId = chatId,
-                messageId = message.messageId,
+                messageId = message,
                 text = text,
                 replyMarkup = replyMarkup,
             )
