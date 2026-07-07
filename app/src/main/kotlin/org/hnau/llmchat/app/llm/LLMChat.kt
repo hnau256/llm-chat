@@ -80,12 +80,9 @@ fun LLMChat(
                             )
                         }
                     )
-                    ?: run {
-                        telegramChat.sendMessage(
-                            text = "Unable handle input to answer",
-                        )
-                        return@onText
-                    }
+                    ?: telegramChat.sendMessage(
+                        text = "Unable handle input to answer",
+                    )
                 return@onText
             }
 
