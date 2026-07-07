@@ -18,6 +18,7 @@ import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardButtons.CallbackDataInlineKeyboardButton
 import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.settings.UserSettingsRepository
@@ -65,23 +66,16 @@ fun LLMChat(
                         ifChild = { null },
                         ifInput = { onInput ->
                             onInput(text)
-                            inputToAnswer
-                                .tryDropLast()
-                                .foldNullable(
-                                    ifNull = {
-                                        //TODO: Send message to user
-                                    },
-                                    ifNotNull = { parentPath ->
-                                        handleButtonClick(
-                                            chatId = chatId,
-                                            encodedPath = parentPath.encode(),
-                                            messageToEdit = null,
-                                            onWaitingForAnswerInput = { page ->
-                                                waitingForAnswerInputs[message.chat.id] = page
-                                            },
-                                        )
-                                    }
-                                )
+                            handleButtonClick(
+                                chatId = chatId,
+                                encodedPath = inputToAnswer
+                                    .tryDropLast()!!
+                                    .encode(),
+                                messageToEdit = null,
+                                onWaitingForAnswerInput = { page ->
+                                    waitingForAnswerInputs[message.chat.id] = page
+                                },
+                            )
                         }
                     )
                     ?: run {
@@ -128,23 +122,16 @@ fun LLMChat(
                 waitingForAnswerInputs.remove(chatId).foldNullable(
                     ifNull = { logger.w { "No input to cancel" } },
                     ifNotNull = { inputToCancel ->
-                        inputToCancel
-                            .tryDropLast()
-                            .foldNullable(
-                                ifNull = {
-                                    //TODO: Send message to user
-                                },
-                                ifNotNull = { parentPath ->
-                                    handleButtonClick(
-                                        chatId = chatId,
-                                        encodedPath = parentPath.encode(),
-                                        messageToEdit = null,
-                                        onWaitingForAnswerInput = { page ->
-                                            waitingForAnswerInputs[message.chat.id] = page
-                                        },
-                                    )
-                                }
-                            )
+                        handleButtonClick(
+                            chatId = chatId,
+                            encodedPath = inputToCancel
+                                .tryDropLast()!!
+                                .encode(),
+                            messageToEdit = null,
+                            onWaitingForAnswerInput = { page ->
+                                waitingForAnswerInputs[message.chat.id] = page
+                            },
+                        )
                     }
                 )
                 answerCallbackQuery(dataCallbackQuery)
