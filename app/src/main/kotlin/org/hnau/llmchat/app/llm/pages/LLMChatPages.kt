@@ -10,9 +10,13 @@ import dev.inmo.tgbotapi.extensions.utils.extensions.raw.message
 import dev.inmo.tgbotapi.types.BotCommand
 import dev.inmo.tgbotapi.types.MessageId
 import dev.inmo.tgbotapi.types.queries.callback.DataCallbackQuery
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
+import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.settings.update
 import org.hnau.llmchat.app.llm.LLMChatContext
@@ -48,10 +52,12 @@ class LLMChatPages {
             chatId = context.chat.id,
         )
 
+        val buttons = generateButtons(context)
+
         return waitingForAnswerInputs.consume().foldNullable(
             ifNotNull = { waitingInput ->
                 findButton(
-                    buttons = commands,
+                    buttons = buttons.get(),
                     path = waitingInput.path,
                 )
                     ?.type
@@ -60,6 +66,7 @@ class LLMChatPages {
                         ifInput = { onInput ->
                             onInput(context, text)
                             context.afterInput(
+                                buttons = buttons.get(),
                                 inputPath = waitingInput.path,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
                             )
@@ -91,6 +98,7 @@ class LLMChatPages {
                                 ?: return@foldNullable true
 
                             context.handleButtonClick(
+                                buttons = buttons.get(),
                                 path = path,
                                 messageToEdit = null,
                                 waitingForAnswerInputs = waitingForAnswerInputs,
@@ -132,7 +140,11 @@ class LLMChatPages {
             encodedPath = encodedPath,
         ) ?: return
 
+
+        val buttons = generateButtons(context)
+
         context.handleButtonClick(
+            buttons = buttons.get(),
             path = path,
             messageToEdit = message.messageId,
             waitingForAnswerInputs = waitingForAnswerInputs,
@@ -141,10 +153,12 @@ class LLMChatPages {
     }
 
     private suspend fun LLMChatContext.afterInput(
+        buttons: List<TelegramPageMessage.Button>,
         inputPath: CallbackDataPath,
         waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
     ) {
         handleButtonClick(
+            buttons = buttons,
             path = inputPath.tryDropLast()!!,
             messageToEdit = null,
             waitingForAnswerInputs = waitingForAnswerInputs,
@@ -164,13 +178,14 @@ class LLMChatPages {
         }
 
     private suspend fun LLMChatContext.handleButtonClick(
+        buttons: List<TelegramPageMessage.Button>,
         path: CallbackDataPath,
         messageToEdit: MessageId?,
         waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
     ) {
 
         val button = findButton(
-            buttons = commands,
+            buttons = buttons,
             path = path,
         ) ?: run {
             chat.sendMessage(
@@ -248,7 +263,7 @@ class LLMChatPages {
     ) {
         chat.sendMessage(
             messageToEdit = messageToEdit,
-            text = page.generateText(this),
+            text = page.text,
             buttons = buildList {
                 addAll(
                     page.buttons.map { button ->
@@ -270,23 +285,43 @@ class LLMChatPages {
         )
     }
 
-    private val commands: List<TelegramPageMessage.Button> =
-        listOf(
-            TelegramPageMessage.Button(
-                id = CallbackDataPath.Entry("settings"),
-                text = "Settings",
-                type = TelegramPageMessage.Button.Type.Child(
+    private data class Command(
+        val id: CallbackDataPath.Entry,
+        val text: String,
+        val generateType: suspend LLMChatContext.() -> TelegramPageMessage.Button.Type,
+    )
+
+    private fun generateButtons(
+        context: LLMChatContext,
+    ): AsyncLazy<List<TelegramPageMessage.Button>> = AsyncLazy {
+        coroutineScope {
+            commands.map { command ->
+                async {
+                    TelegramPageMessage.Button(
+                        id = command.id,
+                        text = command.text,
+                        type = command.generateType(context)
+                    )
+                }
+            }.awaitAll()
+        }
+    }
+
+    private val commands: List<Command> = listOf(
+        Command(
+            id = CallbackDataPath.Entry("settings"),
+            text = "Settings",
+            generateType = {
+                TelegramPageMessage.Button.Type.Child(
                     TelegramPageMessage(
-                        generateText = { "Settings" },
+                        text = "Settings",
                         buttons = listOf(
                             TelegramPageMessage.Button(
                                 id = CallbackDataPath.Entry("basePrompt"),
                                 text = "Base prompt",
                                 type = TelegramPageMessage.Button.Type.Child(
                                     TelegramPageMessage(
-                                        generateText = {
-                                            "Base prompt: ${userSettings.get().basePrompt}"
-                                        },
+                                        text = "Base prompt: ${userSettings.get().basePrompt}",
                                         buttons = listOf(
                                             TelegramPageMessage.Button(
                                                 id = CallbackDataPath.Entry("edit"),
@@ -304,8 +339,9 @@ class LLMChatPages {
                         ),
                     )
                 )
-            )
+            }
         )
+    )
 
 
     @Suppress("ConstPropertyName")

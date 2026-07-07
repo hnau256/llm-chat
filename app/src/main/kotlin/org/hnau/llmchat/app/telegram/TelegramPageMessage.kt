@@ -4,7 +4,7 @@ import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.llmchat.app.llm.LLMChatContext
 
 data class TelegramPageMessage(
-    val generateText: suspend LLMChatContext.() -> String,
+    val text: String,
     val buttons: List<Button>,
 ) {
 
