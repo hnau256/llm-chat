@@ -15,6 +15,10 @@ import org.hnau.llmchat.app.chat.dto.Port
 import org.hnau.llmchat.app.chat.telegram.dto.TelegramBotToken
 import org.hnau.llmchat.app.chat.telegram.telegramLongPolling
 import org.hnau.llmchat.app.chat.telegram.telegramWebhook
+import org.hnau.llmchat.app.db.DBAccessor
+import org.hnau.llmchat.app.db.sqlite
+import org.hnau.llmchat.app.llm.LLMChat
+import org.hnau.llmchat.app.utils.fileParser
 import org.hnau.llmchat.app.utils.getEnv
 import org.hnau.llmchat.app.utils.getRequiredEnv
 import org.hnau.llmchat.app.utils.parser
@@ -44,6 +48,13 @@ fun main() {
         name = "TELEGRAM_WEBHOOK_PORT",
         parser = Port.parser,
     ).getOrElse { Port.createOrNull(8080)!! }
+
+    val dbAccessor: DBAccessor = DBAccessor.sqlite(
+        databaseFile = getRequiredEnv(
+            name = "DB_PATH",
+            parser = fileParser,
+        )
+    )
 
     runBlocking {
 
@@ -78,13 +89,13 @@ fun main() {
             }
         )
 
-        chatServerLauncher.launchChatServer { request ->
-            logger.i { "Handling message from user ${request.userId}" }
-            val message = request.message
-            ChatResponse(
-                message = "You said: $message"
-            )
-        }
+        val chat = LLMChat(
+            dbAccessor = dbAccessor,
+        )
+
+        chatServerLauncher.launchChatServer(
+            callback = chat::handleRequest,
+        )
     }
 }
 
