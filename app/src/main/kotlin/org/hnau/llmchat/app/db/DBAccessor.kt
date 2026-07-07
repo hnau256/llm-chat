@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import kotlin.time.measureTimedValue
 import org.flywaydb.core.Flyway
 import org.hnau.commons.gen.loggable.annotations.Loggable
+import org.hnau.llmchat.app.db.migration.migrate
 import java.sql.Connection
 
 @Loggable
@@ -25,32 +26,8 @@ class DBAccessor private constructor(
         suspend fun create(
             adapter: DBAdapter,
         ): DBAccessor {
-            migrateDatabase(adapter)
+            adapter.migrate()
             return DBAccessor(adapter)
-        }
-
-        private suspend fun migrateDatabase(
-            adapter: DBAdapter,
-        ) {
-
-            val flyWay = Flyway
-                .configure()
-                .dataSource(
-                    /* url = */ adapter.jdbcUrl,
-                    /* user = */ null,
-                    /* password = */ null,
-                )
-                .load()
-
-            logger.i { "Running database migrations..." }
-
-            val (result, duration) = measureTimedValue {
-                withContext(Dispatchers.IO) {
-                    flyWay.migrate()
-                }
-            }
-
-            logger.i { "Database migrations complete. ${result.migrationsExecuted} migration(s) applied in $duration" }
         }
     }
 }
