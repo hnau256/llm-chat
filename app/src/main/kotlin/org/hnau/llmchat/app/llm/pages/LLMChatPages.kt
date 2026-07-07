@@ -21,6 +21,7 @@ import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.db.settings.update
 import org.hnau.llmchat.app.llm.LLMChatContext
 import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
+import org.hnau.llmchat.app.llm.pages.page.generateSettingsPage
 import org.hnau.llmchat.app.telegram.CallbackDataPath
 import org.hnau.llmchat.app.telegram.TelegramButton
 import org.hnau.llmchat.app.telegram.TelegramPageMessage
@@ -313,33 +314,7 @@ class LLMChatPages {
         Command(
             id = CallbackDataPath.Entry("settings"),
             text = "Settings",
-            generateMessage = {
-                TelegramPageMessage(
-                    text = "Settings",
-                    buttons = listOf(
-                        TelegramPageMessage.Button(
-                            id = CallbackDataPath.Entry("basePrompt"),
-                            text = "Base prompt",
-                            type = TelegramPageMessage.Button.Type.Child(
-                                TelegramPageMessage(
-                                    text = "Base prompt: ${userSettings.settings.basePrompt}",
-                                    buttons = listOf(
-                                        TelegramPageMessage.Button(
-                                            id = CallbackDataPath.Entry("edit"),
-                                            text = "Edit",
-                                            type = TelegramPageMessage.Button.Type.Input(
-                                                onInput = { input ->
-                                                    userSettings.update { copy(basePrompt = input) }
-                                                }
-                                            )
-                                        )
-                                    ),
-                                )
-                            )
-                        )
-                    ),
-                )
-            }
+            generateMessage = LLMChatContext::generateSettingsPage,
         )
     )
 

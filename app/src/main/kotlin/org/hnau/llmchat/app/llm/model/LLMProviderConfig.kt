@@ -13,12 +13,21 @@ sealed interface LLMProviderConfig {
 
     @Serializable
     @SerialName("deepseek")
-    data class DeepSeek(
+    data class DeepSeek @JvmOverloads constructor(
         val apiKey: ApiKey? = null,
     ) : LLMProviderConfig {
 
         override fun tryCreateConfig(): LLMProviderConfig? = LLMProviderConfig.DeepSeek(
             apiKey = apiKey ?: return null,
         )
+    }
+
+    companion object {
+
+        val all: List<LLMProviderConfig> by lazy {
+            LLMProviderConfig::class.sealedSubclasses.map { subclass ->
+                subclass.java.getDeclaredConstructor().newInstance() as LLMProviderConfig
+            }
+        }
     }
 }
