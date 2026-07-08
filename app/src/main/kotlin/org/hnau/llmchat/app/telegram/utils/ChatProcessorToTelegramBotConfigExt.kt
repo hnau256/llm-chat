@@ -27,12 +27,14 @@ import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
+import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.chat.ButtonResult
 import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
+import org.hnau.llmchat.app.chat.createButtonTitle
 import org.hnau.llmchat.app.chat.fold
 import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
 
@@ -142,7 +144,7 @@ private suspend fun <C> tryHandleText(
                     ifNull = {
                         context.bot.sendMessage(
                             chatId = context.chatId,
-                            text = "Unable handle input to answer",
+                            text = "${ButtonIcon.warning} Unable handle input to answer",
                         )
                         false
                     },
@@ -226,7 +228,7 @@ private suspend fun <C> handleButtonResult(
             ifNull = {
                 context.bot.sendMessage(
                     chatId = context.chatId,
-                    text = "Unable handle button click",
+                    text = "${ButtonIcon.warning} Unable handle button click",
                 )
             },
             ifNotNull = { newPath ->
@@ -249,7 +251,7 @@ private suspend fun <C> tryParseEncodedPathOrLogError(
         pathOrNull.ifNull {
             context.bot.sendMessage(
                 chatId = context.chatId,
-                text = "Unknown command format '$encodedPath'",
+                text = "${ButtonIcon.warning} Unknown command format '$encodedPath'",
             )
         }
     }
@@ -266,7 +268,7 @@ private suspend fun <C> handleButtonClick(
     ) ?: run {
         context.bot.sendMessage(
             chatId = context.chatId,
-            text = "Unknown command '$path'",
+            text = "${ButtonIcon.warning} Unknown command '$path'",
         )
         return
     }
@@ -296,10 +298,13 @@ private suspend fun <C> handleButtonClick(
                     .bot
                     .sendMessage(
                         chatId = context.chatId,
-                        text = "✏\uFE0F Input '${button.title}",
+                        text = "${ButtonIcon.edit} Please, enter '${button.title} in next message",
                         replyMarkup = listOf(
                             TelegramButton(
-                                title = "❌ Cancel input",
+                                title = createButtonTitle(
+                                    icon = ButtonIcon.cancel,
+                                    title = "Cancel input",
+                                ),
                                 path = CallbackDataPath(
                                     entries = nonEmptyListOf(
                                         CallbackDataPath.Entry(
@@ -385,7 +390,10 @@ private suspend fun <C> openPage(
         path.tryGoBack()?.let { pathToGoBack ->
             add(
                 TelegramButton(
-                    title = "Back",
+                    title = createButtonTitle(
+                        icon = ButtonIcon.back,
+                        title = "Back",
+                    ),
                     path = pathToGoBack,
                 )
             )

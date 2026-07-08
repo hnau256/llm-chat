@@ -2,7 +2,9 @@ package org.hnau.llmchat.app.hnauchat.page
 
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.chat.ChatPage
+import org.hnau.llmchat.app.chat.createButtonTitle
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.app.llm.model.name
 
@@ -17,17 +19,17 @@ suspend fun generateSettingsPage(
         add(
             ChatPage.Button(
                 id = ChatPage.Button.Id("chooseProvider"),
-                title = "Provider" + llmProviderConfig.foldNullable(
-                    ifNull = { "" },
-                    ifNotNull = { providerConfig ->
-                        val correct = providerConfig.tryCreateLLMClient() != null
-                        val correctSuffix = correct.foldBoolean(
-                            ifFalse = { "❌" },
-                            ifTrue = { "✅" }
-                        )
-                        " (${providerConfig.name} $correctSuffix)"
-                    },
-                ),
+                title = run {
+                    val correct = llmProviderConfig?.tryCreateLLMClient() != null
+                    createButtonTitle(
+                        icon = correct.foldBoolean(
+                            ifFalse = { ButtonIcon.error },
+                            ifTrue = { ButtonIcon.success },
+                        ),
+                        title = "Provider",
+                        additionalInfo = llmProviderConfig?.name,
+                    )
+                },
                 type = ChatPage.Button.Type.Child(
                     message = generateChooseProviderPage(context)
                 ),
@@ -45,8 +47,16 @@ suspend fun generateSettingsPage(
 
         add(
             ChatPage.Button(
-                id = ChatPage.Button.Id("basePrompt"),
-                title = "Base prompt",
+                title = createButtonTitle(
+                    icon = ButtonIcon.rules,
+                    title = "Base prompt",
+                    additionalInfo = context
+                        .settings
+                        .settings
+                        .basePrompt
+                        .takeIf(String::isNotEmpty)
+                        ?.let { "+" },
+                ),
                 type = ChatPage.Button.Type.Child(
                     message = generateBasePromptPage(
                         context = context,
