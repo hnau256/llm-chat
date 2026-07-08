@@ -1,5 +1,6 @@
 package org.hnau.llmchat.app.llm
 
+import dev.inmo.tgbotapi.extensions.api.answers.answerCallbackQuery
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContextReceiver
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onDataCallbackQuery
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onText
@@ -56,13 +57,13 @@ fun LLMChat(
 
     onDataCallbackQuery { dataCallbackQuery ->
 
-        val message = dataCallbackQuery
-            .message
-            ?: return@onDataCallbackQuery
+        dataCallbackQuery.message?.let { message ->
+            pages.handleCallback(
+                context = createContext(message.chat.id),
+                callback = dataCallbackQuery,
+            )
+        }
 
-        pages.handleCallback(
-            context = createContext(message.chat.id),
-            callback = dataCallbackQuery,
-        )
+        answerCallbackQuery(dataCallbackQuery)
     }
 }

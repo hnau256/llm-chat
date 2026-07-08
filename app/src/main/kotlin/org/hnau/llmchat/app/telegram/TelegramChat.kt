@@ -11,7 +11,7 @@ import dev.inmo.tgbotapi.types.buttons.InlineKeyboardMarkup
 import org.hnau.commons.kotlin.foldNullable
 
 class TelegramChat(
-    val bot: TelegramBot,
+    private val bot: TelegramBot,
     val id: IdChatIdentifier,
 ) {
 

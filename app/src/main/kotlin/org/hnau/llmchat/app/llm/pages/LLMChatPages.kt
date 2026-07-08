@@ -135,7 +135,6 @@ class LLMChatPages {
                         context.chat.deleteMessage(waitingInput.promptMessageId)
                     },
                 )
-            context.chat.bot.answerCallbackQuery(callback)
             return
         }
 
@@ -152,7 +151,6 @@ class LLMChatPages {
             messageToEdit = message.messageId,
             waitingForAnswerInputs = waitingForAnswerInputs,
         )
-        context.chat.bot.answerCallbackQuery(callback)
     }
 
     private suspend fun LLMChatContext.handleButtonResult(
@@ -230,10 +228,10 @@ class LLMChatPages {
                 },
                 ifInput = {
                     val promptMessageId = chat.sendMessage(
-                        text = "Input '${button.text}",
+                        text = "✏\uFE0F Input '${button.text}",
                         buttons = listOf(
                             TelegramButton(
-                                title = "Cancel input",
+                                title = "❌ Cancel input",
                                 path = CallbackDataPath(
                                     entries = nonEmptyListOf(
                                         CallbackDataPath.Entry(
