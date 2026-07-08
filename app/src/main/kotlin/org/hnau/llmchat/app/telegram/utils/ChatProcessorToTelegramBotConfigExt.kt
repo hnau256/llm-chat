@@ -42,9 +42,32 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
 
     val waitingForAnswerInputs = WaitingForAnswerInputs()
 
-    val createContext: suspend (IdChatIdentifier) -> C = { idChatIdentifier ->
+    val createContext: suspend (IdChatIdentifier) -> ExtendedContext<C> = { idChatIdentifier ->
         val chatId = ChatId(idChatIdentifier.chatId.long.toString())
-        buildContext(chatId)
+        val context = buildContext(chatId)
+        ExtendedContext(
+            context = context,
+            bot = this,
+            waitingForAnswerInputs = waitingForAnswerInputs.forChat(idChatIdentifier),
+            chatId = idChatIdentifier,
+            pages = AsyncLazy {
+                coroutineScope {
+                    rootPages.map { rootPage ->
+                        async {
+                            val message = rootPage.generatePage(context)
+                            ChatPage.Button(
+                                id = rootPage.id,
+                                title = rootPage.title,
+                                type = ChatPage.Button.Type.Child(
+                                    message = message,
+                                )
+                            )
+                        }
+                    }
+                        .awaitAll()
+                }
+            },
+        )
     }
 
     setMyCommands(
@@ -58,8 +81,6 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
 
     onText { message ->
 
-        val chatId = message.chat.id
-
         val context = createContext(message.chat.id)
 
         val text = message.content.text
@@ -67,10 +88,6 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
         val handledByPages = tryHandleText(
             context = context,
             text = text,
-            waitingForAnswerInputs = waitingForAnswerInputs.forChat(chatId),
-            bot = this,
-            rootPages = rootPages,
-            chatId = chatId,
         )
 
         if (handledByPages) {
@@ -84,14 +101,14 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
                 text: String,
             ) {
                 bot.sendMessage(
-                    chatId = chatId,
+                    chatId = context.chatId,
                     text = text,
                 )
             }
         }
 
         chat.handleMessage(
-            context = context,
+            context = context.context,
             message = text,
         )
     }
@@ -103,10 +120,6 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
             handleCallback(
                 context = createContext(chatId),
                 callback = dataCallbackQuery,
-                bot = this,
-                rootPages = rootPages,
-                chatId = chatId,
-                waitingForAnswerInputs = waitingForAnswerInputs.forChat(chatId),
             )
         }
 
@@ -116,23 +129,14 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
 }
 
 private suspend fun <C> tryHandleText(
-    context: C,
-    rootPages: List<ChatRootPage<C>>,
-    chatId: IdChatIdentifier,
-    bot: TelegramBot,
+    context: ExtendedContext<C>,
     text: String,
-    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ): Boolean {
 
-    val buttons = generateButtons(
-        context = context,
-        rootPages = rootPages,
-    )
-
-    return waitingForAnswerInputs.consume().foldNullable(
+    return context.waitingForAnswerInputs.consume().foldNullable(
         ifNotNull = { waitingInput ->
             findButton(
-                buttons = buttons.get(),
+                buttons = context.pages.get(),
                 path = waitingInput.path,
             )
                 ?.type
@@ -140,24 +144,20 @@ private suspend fun <C> tryHandleText(
                     ifChild = { null },
                     ifClick = { null },
                     ifInput = { onInput ->
-                        val result = onInput(context, text)
+                        val result = onInput(context.context, text)
                         handleButtonResult(
                             context = context,
-                            chatId = chatId,
-                            bot = bot,
                             buttonResult = result,
                             buttonPath = waitingInput.path,
-                            waitingForAnswerInputs = waitingForAnswerInputs,
                             messageToEdit = null,
-                            rootPages = rootPages,
                         )
                     },
                 )
                 .foldNullable(
                     ifNotNull = { true },
                     ifNull = {
-                        bot.sendMessage(
-                            chatId = chatId,
+                        context.bot.sendMessage(
+                            chatId = context.chatId,
                             text = "Unable handle input to answer",
                         )
                         false
@@ -174,21 +174,15 @@ private suspend fun <C> tryHandleText(
                     ifNotNull = { command ->
 
                         val path = tryParseEncodedPathOrLogError(
-                            chatId = chatId,
-                            bot = bot,
+                            context = context,
                             encodedPath = command,
                         )
                             ?: return@foldNullable true
 
                         handleButtonClick(
                             context = context,
-                            chatId = chatId,
-                            bot = bot,
-                            buttons = buttons.get(),
                             path = path,
                             messageToEdit = null,
-                            rootPages = rootPages,
-                            waitingForAnswerInputs = waitingForAnswerInputs,
                         )
 
                         true
@@ -199,25 +193,22 @@ private suspend fun <C> tryHandleText(
 }
 
 private suspend fun <C> handleCallback(
-    context: C,
-    chatId: IdChatIdentifier,
-    bot: TelegramBot,
-    rootPages: List<ChatRootPage<C>>,
+    context: ExtendedContext<C>,
     callback: DataCallbackQuery,
-    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
     val message = callback.message ?: return
 
     val encodedPath = callback.data
 
     if (encodedPath == CancelInputCallbackData) {
-        waitingForAnswerInputs
+        context
+            .waitingForAnswerInputs
             .consume()
             .foldNullable(
                 ifNull = { logger.w { "No input to cancel" } },
                 ifNotNull = { waitingInput ->
-                    bot.deleteMessage(
-                        chatId = chatId,
+                    context.bot.deleteMessage(
+                        chatId = context.chatId,
                         messageId = waitingInput.promptMessageId,
                     )
                 },
@@ -226,37 +217,21 @@ private suspend fun <C> handleCallback(
     }
 
     val path = tryParseEncodedPathOrLogError(
-        chatId = chatId,
-        bot = bot,
+        context = context,
         encodedPath = encodedPath,
     ) ?: return
 
-
-    val buttons = generateButtons(
-        context = context,
-        rootPages = rootPages,
-    )
-
     handleButtonClick(
         context = context,
-        chatId = chatId,
-        bot = bot,
-        buttons = buttons.get(),
         path = path,
         messageToEdit = message.messageId,
-        rootPages = rootPages,
-        waitingForAnswerInputs = waitingForAnswerInputs,
     )
 }
 
 private suspend fun <C> handleButtonResult(
-    context: C,
-    chatId: IdChatIdentifier,
-    bot: TelegramBot,
-    rootPages: List<ChatRootPage<C>>,
+    context: ExtendedContext<C>,
     buttonResult: ButtonResult,
     buttonPath: CallbackDataPath,
-    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
     messageToEdit: MessageId?,
 ) {
     buttonPath
@@ -265,61 +240,47 @@ private suspend fun <C> handleButtonResult(
         )
         .foldNullable(
             ifNull = {
-                bot.sendMessage(
-                    chatId = chatId,
+                context.bot.sendMessage(
+                    chatId = context.chatId,
                     text = "Unable handle button click",
                 )
             },
             ifNotNull = { newPath ->
                 handleButtonClick(
                     context = context,
-                    chatId = chatId,
-                    bot = bot,
-                    rootPages = rootPages,
-                    buttons = generateButtons(
-                        context = context,
-                        rootPages = rootPages,
-                    ).get(),
                     path = newPath,
                     messageToEdit = messageToEdit,
-                    waitingForAnswerInputs = waitingForAnswerInputs,
                 )
             }
         )
 }
 
-private suspend fun tryParseEncodedPathOrLogError(
-    chatId: IdChatIdentifier,
-    bot: TelegramBot,
+private suspend fun <C> tryParseEncodedPathOrLogError(
+    context: ExtendedContext<C>,
     encodedPath: String,
 ): CallbackDataPath? = CallbackDataPath
     .tryParse(encodedPath)
     .also { pathOrNull ->
         pathOrNull.ifNull {
-            bot.sendMessage(
-                chatId = chatId,
+            context.bot.sendMessage(
+                chatId = context.chatId,
                 text = "Unknown command format '$encodedPath'",
             )
         }
     }
 
 private suspend fun <C> handleButtonClick(
-    context: C,
-    chatId: IdChatIdentifier,
-    bot: TelegramBot,
-    rootPages: List<ChatRootPage<C>>,
-    buttons: List<ChatPage.Button<C>>,
+    context: ExtendedContext<C>,
     path: CallbackDataPath,
     messageToEdit: MessageId?,
-    waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
 ) {
 
     val button = findButton(
-        buttons = buttons,
+        buttons = context.pages.get(),
         path = path,
     ) ?: run {
-        bot.sendMessage(
-            chatId = chatId,
+        context.bot.sendMessage(
+            chatId = context.chatId,
             text = "Unknown command '$path'",
         )
         return
@@ -330,30 +291,26 @@ private suspend fun <C> handleButtonClick(
         .fold(
             ifChild = { message ->
                 openPage(
-                    bot = bot,
-                    chatId = chatId,
+                    context = context,
                     messageToEdit = messageToEdit,
                     path = path,
                     page = message,
                 )
             },
             ifClick = { onClick ->
-                val result = onClick(context)
+                val result = onClick(context.context)
                 handleButtonResult(
                     context = context,
-                    chatId = chatId,
-                    bot = bot,
-                    rootPages = rootPages,
                     buttonResult = result,
                     buttonPath = path,
-                    waitingForAnswerInputs = waitingForAnswerInputs,
                     messageToEdit = messageToEdit,
                 )
             },
             ifInput = {
-                val sentMessageId = bot
+                val sentMessageId = context
+                    .bot
                     .sendMessage(
-                        chatId = chatId,
+                        chatId = context.chatId,
                         text = "✏\uFE0F Input '${button.title}",
                         replyMarkup = listOf(
                             TelegramButton(
@@ -369,10 +326,12 @@ private suspend fun <C> handleButtonClick(
                         ).toInlineKeyboardMarkup(),
                     )
                     .messageId
-                waitingForAnswerInputs.add(
-                    path,
-                    sentMessageId,
-                )
+                context
+                    .waitingForAnswerInputs
+                    .add(
+                        path,
+                        sentMessageId,
+                    )
             }
         )
 }
@@ -423,11 +382,10 @@ private fun List<TelegramButton>.toInlineKeyboardMarkup(): InlineKeyboardMarkup 
 
 
 private suspend fun <C> openPage(
-    chatId: IdChatIdentifier,
-    messageToEdit: MessageId?,
-    bot: TelegramBot,
+    context: ExtendedContext<C>,
     path: CallbackDataPath,
     page: ChatPage<C>,
+    messageToEdit: MessageId?,
 ) {
     val text = page.text
     val replyMarkup = buildList {
@@ -450,15 +408,15 @@ private suspend fun <C> openPage(
     }.toInlineKeyboardMarkup()
     messageToEdit.foldNullable(
         ifNull = {
-            bot.sendMessage(
-                chatId = chatId,
+            context.bot.sendMessage(
+                chatId = context.chatId,
                 text = text,
                 replyMarkup = replyMarkup,
             )
         },
         ifNotNull = { messageId ->
-            bot.editMessageText(
-                chatId = chatId,
+            context.bot.editMessageText(
+                chatId = context.chatId,
                 messageId = messageId,
                 text = text,
                 replyMarkup = replyMarkup,
@@ -467,26 +425,13 @@ private suspend fun <C> openPage(
     )
 }
 
-private fun <C> generateButtons(
-    rootPages: List<ChatRootPage<C>>,
-    context: C,
-): AsyncLazy<List<ChatPage.Button<C>>> = AsyncLazy {
-    coroutineScope {
-        rootPages.map { rootPage ->
-            async {
-                val message = rootPage.generatePage(context)
-                ChatPage.Button(
-                    id = rootPage.id,
-                    title = rootPage.title,
-                    type = ChatPage.Button.Type.Child(
-                        message = message,
-                    )
-                )
-            }
-        }
-            .awaitAll()
-    }
-}
+private data class ExtendedContext<C>(
+    val context: C,
+    val pages: AsyncLazy<List<ChatPage.Button<C>>>,
+    val chatId: IdChatIdentifier,
+    val bot: TelegramBot,
+    val waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
+)
 
 private data class TelegramButton(
     val title: String,
