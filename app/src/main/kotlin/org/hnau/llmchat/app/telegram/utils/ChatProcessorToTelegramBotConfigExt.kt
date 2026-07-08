@@ -28,6 +28,7 @@ import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.chat.ButtonResult
+import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
@@ -76,10 +77,22 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
             return@onText
         }
 
-        //TODO replace with handleMessage
-        bot.sendMessage(
-            chatId = chatId,
-            text = "Answer for '$text'",
+
+        val chat = object : Chat {
+
+            override suspend fun sendMessage(
+                text: String,
+            ) {
+                bot.sendMessage(
+                    chatId = chatId,
+                    text = text,
+                )
+            }
+        }
+
+        chat.handleMessage(
+            context = context,
+            message = text,
         )
     }
 
