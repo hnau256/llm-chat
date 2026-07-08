@@ -6,11 +6,11 @@ import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.db.settings.update
 import org.hnau.llmchat.app.dto.ApiKey
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
-import org.hnau.llmchat.app.llm.model.LLMProviderConfig
+import org.hnau.llmchat.app.llm.model.LLMClientConfig
 
 suspend fun generateDeepSeekLLMProviderConfigButtons(
     context: HnauChatProcessor.Context,
-    config: LLMProviderConfig.DeepSeek,
+    config: LLMClientConfig.DeepSeek,
 ): List<ChatPage.Button<HnauChatProcessor.Context>> = listOf(
     ChatPage.Button(
         id = ChatPage.Button.Id("apiKey"),
@@ -21,7 +21,7 @@ suspend fun generateDeepSeekLLMProviderConfigButtons(
         type = ChatPage.Button.Type.Input { context, input ->
             context.settings.update {
                 copy(
-                    llmProviderConfig = config.copy(
+                    llmClientConfig = config.copy(
                         apiKey = ApiKey.tryCreate(input),
                     )
                 )

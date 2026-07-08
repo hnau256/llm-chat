@@ -12,7 +12,7 @@ suspend fun generateSettingsPage(
     text = "Settings",
     buttons = buildList {
 
-        val llmProviderConfig = context.settings.settings.llmProviderConfig
+        val llmProviderConfig = context.settings.settings.llmClientConfig
 
         add(
             ChatPage.Button(
@@ -20,7 +20,7 @@ suspend fun generateSettingsPage(
                 title = "Provider" + llmProviderConfig.foldNullable(
                     ifNull = { "" },
                     ifNotNull = { providerConfig ->
-                        val correct = providerConfig.tryCreateConfig() != null
+                        val correct = providerConfig.tryCreateLLMClient() != null
                         val correctSuffix = correct.foldBoolean(
                             ifFalse = { "❌" },
                             ifTrue = { "✅" }

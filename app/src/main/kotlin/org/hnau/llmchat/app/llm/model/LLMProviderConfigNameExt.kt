@@ -1,4 +1,4 @@
 package org.hnau.llmchat.app.llm.model
 
-val LLMProviderConfig.name: String
+val LLMClientConfig.name: String
     get() = javaClass.simpleName
