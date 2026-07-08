@@ -50,23 +50,7 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
             bot = this,
             waitingForAnswerInputs = waitingForAnswerInputs.forChat(idChatIdentifier),
             chatId = idChatIdentifier,
-            pages = AsyncLazy {
-                coroutineScope {
-                    rootPages.map { rootPage ->
-                        async {
-                            val message = rootPage.generatePage(context)
-                            ChatPage.Button(
-                                id = rootPage.id,
-                                title = rootPage.title,
-                                type = ChatPage.Button.Type.Child(
-                                    message = message,
-                                )
-                            )
-                        }
-                    }
-                        .awaitAll()
-                }
-            },
+            rootPages = rootPages,
         )
     }
 
@@ -246,6 +230,7 @@ private suspend fun <C> handleButtonResult(
                 )
             },
             ifNotNull = { newPath ->
+                context.resetPages()
                 handleButtonClick(
                     context = context,
                     path = newPath,
@@ -427,11 +412,38 @@ private suspend fun <C> openPage(
 
 private data class ExtendedContext<C>(
     val context: C,
-    val pages: AsyncLazy<List<ChatPage.Button<C>>>,
     val chatId: IdChatIdentifier,
     val bot: TelegramBot,
     val waitingForAnswerInputs: WaitingForAnswerInputs.InChat,
-)
+    val rootPages: List<ChatRootPage<C>>,
+) {
+
+    var pages: AsyncLazy<List<ChatPage.Button<C>>> = generatePages()
+        private set
+
+    fun resetPages() {
+        pages = generatePages()
+    }
+
+    private fun generatePages(): AsyncLazy<List<ChatPage.Button<C>>> = AsyncLazy {
+        coroutineScope {
+            rootPages
+                .map { rootPage ->
+                    async {
+                        val message = rootPage.generatePage(context)
+                        ChatPage.Button(
+                            id = rootPage.id,
+                            title = rootPage.title,
+                            type = ChatPage.Button.Type.Child(
+                                message = message,
+                            )
+                        )
+                    }
+                }
+                .awaitAll()
+        }
+    }
+}
 
 private data class TelegramButton(
     val title: String,
