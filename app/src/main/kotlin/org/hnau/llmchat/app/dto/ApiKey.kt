@@ -4,6 +4,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @JvmInline
-value class ApiKey(
+value class ApiKey private constructor(
     val value: String,
-)
+) {
+
+    companion object {
+
+        fun tryCreate(
+            raw: String,
+        ): ApiKey? = raw
+            .takeIf(String::isNotEmpty)
+            ?.let(::ApiKey)
+    }
+}
