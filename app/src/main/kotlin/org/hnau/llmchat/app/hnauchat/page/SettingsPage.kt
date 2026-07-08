@@ -1,22 +1,23 @@
-package org.hnau.llmchat.app.llm.pages.page
+package org.hnau.llmchat.app.hnauchat.page
 
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.llmchat.app.llm.LLMChatContext
+import org.hnau.llmchat.app.chat.ChatPage
+import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.app.llm.model.name
-import org.hnau.llmchat.app.telegram.CallbackDataPath
-import org.hnau.llmchat.app.telegram.TelegramPageMessage
 
-suspend fun LLMChatContext.generateSettingsPage(): TelegramPageMessage = TelegramPageMessage(
+suspend fun generateSettingsPage(
+    context: HnauChatProcessor.Context,
+): ChatPage<HnauChatProcessor.Context> = ChatPage(
     text = "Settings",
     buttons = buildList {
 
-        val llmProviderConfig = userSettings.settings.llmProviderConfig
+        val llmProviderConfig = context.settings.settings.llmProviderConfig
 
         add(
-            TelegramPageMessage.Button(
-                id = CallbackDataPath.Entry("chooseProvider"),
-                text = "Provider" + llmProviderConfig.foldNullable(
+            ChatPage.Button(
+                id = ChatPage.Button.Id("chooseProvider"),
+                title = "Provider" + llmProviderConfig.foldNullable(
                     ifNull = { "" },
                     ifNotNull = { providerConfig ->
                         val correct = providerConfig.tryCreateConfig() != null
@@ -27,8 +28,8 @@ suspend fun LLMChatContext.generateSettingsPage(): TelegramPageMessage = Telegra
                         " (${providerConfig.name} $correctSuffix)"
                     },
                 ),
-                type = TelegramPageMessage.Button.Type.Child(
-                    message = generateChooseProviderPage()
+                type = ChatPage.Button.Type.Child(
+                    message = generateChooseProviderPage(context)
                 ),
             )
         )
@@ -36,17 +37,20 @@ suspend fun LLMChatContext.generateSettingsPage(): TelegramPageMessage = Telegra
         llmProviderConfig?.let { config ->
             addAll(
                 generateLLMProviderConfigButtons(
+                    context = context,
                     config = config,
                 )
             )
         }
 
         add(
-            TelegramPageMessage.Button(
-                id = CallbackDataPath.Entry("basePrompt"),
-                text = "Base prompt",
-                type = TelegramPageMessage.Button.Type.Child(
-                    message = generateBasePromptPage()
+            ChatPage.Button(
+                id = ChatPage.Button.Id("basePrompt"),
+                title = "Base prompt",
+                type = ChatPage.Button.Type.Child(
+                    message = generateBasePromptPage(
+                        context = context,
+                    )
                 ),
             )
         )

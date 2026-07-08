@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram
+package org.hnau.llmchat.app.telegram.utils
 
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull

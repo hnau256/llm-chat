@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram
+package org.hnau.llmchat.app.chat
 
 data class ButtonResult(
     val navigateBackCount: Int,

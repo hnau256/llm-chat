@@ -2,7 +2,7 @@ package org.hnau.llmchat.app.llm
 
 import dev.inmo.tgbotapi.types.IdChatIdentifier
 import dev.inmo.tgbotapi.types.MessageId
-import org.hnau.llmchat.app.telegram.CallbackDataPath
+import org.hnau.llmchat.app.telegram.utils.CallbackDataPath
 import java.util.concurrent.ConcurrentHashMap
 
 data class WaitingInput(

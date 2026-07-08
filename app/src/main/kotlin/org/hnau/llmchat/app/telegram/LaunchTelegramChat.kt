@@ -3,7 +3,6 @@ package org.hnau.llmchat.app.telegram
 import co.touchlab.kermit.Logger
 import dev.inmo.tgbotapi.bot.ktor.telegramBot
 import dev.inmo.tgbotapi.extensions.api.webhook.setWebhookInfo
-import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContextReceiver
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviour
 import dev.inmo.tgbotapi.extensions.behaviour_builder.buildBehaviourWithLongPolling
 import dev.inmo.tgbotapi.extensions.utils.updates.retrieving.includeWebhookHandlingInRoute
@@ -11,14 +10,19 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.llmchat.app.chat.ChatProcessor
+import org.hnau.llmchat.app.telegram.utils.toTelegramBotConfig
 
-private val logger = Logger.withTag("LaunchTelegramBot")
+private val logger = Logger.withTag("LaunchTelegramChat")
 
-internal suspend fun launchTelegramBot(
+internal suspend fun <C> launchTelegramChat(
     token: String,
     webhook: TelegramWebhookConfig?,
-    config: BehaviourContextReceiver<Unit>,
+    chatProcessor: ChatProcessor<C>,
 ) {
+
+    val config = chatProcessor.toTelegramBotConfig()
+
     val bot = telegramBot(token)
     webhook.foldNullable(
         ifNull = {

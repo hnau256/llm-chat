@@ -6,8 +6,8 @@ import kotlinx.serialization.json.Json
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.toMapper
+import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.db.DBAccessor
-import org.hnau.llmchat.app.dto.UserId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
@@ -24,13 +24,13 @@ interface UserSettingsRepository {
 
         suspend fun create(
             db: DBAccessor,
-            userId: UserId,
+            chatId: ChatId,
         ): UserSettingsRepository {
 
             var cached = db.withConnection { connection ->
                 connection
-                    .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $UserIdColumn = ?")
-                    .apply { setString(1, userId.value) }
+                    .prepareStatement("SELECT $SettingsColumn FROM $TableName WHERE $ChatIdColumn = ?")
+                    .apply { setString(1, chatId.id) }
                     .use { statement ->
                         statement
                             .executeQuery()
@@ -60,12 +60,12 @@ interface UserSettingsRepository {
                             connection
                                 .prepareStatement(
                                     """
-                                            INSERT INTO $TableName ($UserIdColumn, $SettingsColumn) VALUES (?, ?)
-                                            ON CONFLICT($UserIdColumn) DO UPDATE SET $SettingsColumn = excluded.$SettingsColumn
+                                            INSERT INTO $TableName ($ChatIdColumn, $SettingsColumn) VALUES (?, ?)
+                                            ON CONFLICT($ChatIdColumn) DO UPDATE SET $SettingsColumn = excluded.$SettingsColumn
                                         """.trimIndent()
                                 )
                                 .apply {
-                                    setString(1, userId.value)
+                                    setString(1, chatId.id)
                                     setString(2, newSettings.let(settingsStringMapper.reverse))
                                 }
                                 .use(PreparedStatement::executeUpdate)
@@ -80,7 +80,7 @@ interface UserSettingsRepository {
 
         private const val TableName = "user_settings"
 
-        private const val UserIdColumn = "user_id"
+        private const val ChatIdColumn = "user_id"
 
         private const val SettingsColumn = "settings"
 

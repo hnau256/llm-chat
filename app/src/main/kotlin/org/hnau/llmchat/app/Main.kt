@@ -15,9 +15,9 @@ import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
 import org.hnau.llmchat.app.dto.Port
-import org.hnau.llmchat.app.llm.LLMChat
+import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.app.telegram.TelegramWebhookConfig
-import org.hnau.llmchat.app.telegram.launchTelegramBot
+import org.hnau.llmchat.app.telegram.launchTelegramChat
 import org.hnau.llmchat.app.utils.fileParser
 import org.hnau.llmchat.app.utils.getEnv
 import org.hnau.llmchat.app.utils.getRequiredEnv
@@ -70,7 +70,7 @@ fun main() {
             }
         )
 
-        launchTelegramBot(
+        launchTelegramChat(
             token = telegramToken,
             webhook = telegramWebhookUrl?.let { url ->
                 TelegramWebhookConfig(
@@ -79,13 +79,13 @@ fun main() {
                     serverFactory = serverFactory,
                 )
             },
-            config = LLMChat(
-                dbAccessor = DBAccessor.create(
+            chatProcessor = HnauChatProcessor(
+                db = DBAccessor.create(
                     adapter = DBAdapter.sqlite(
                         databaseFile = databaseFile
                     )
-                ),
-            ),
+                )
+            )
         )
     }
 }
