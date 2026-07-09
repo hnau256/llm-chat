@@ -1,5 +1,9 @@
 package org.hnau.llmchat.app.hnauchat
 
+import ai.koog.prompt.Prompt
+import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
+import ai.koog.prompt.message.RequestMetaInfo
 import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
@@ -7,9 +11,10 @@ import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
-import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
+import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
+import kotlin.time.Clock
 
 class HnauChatProcessor(
     private val db: DBAccessor,
@@ -53,6 +58,43 @@ class HnauChatProcessor(
         context: Context,
         message: String
     ) {
-        sendMessage("Answer for $message")
+        val (client, model) = context
+            .llmConnectionManager
+            .client
+            ?.getClientWithModel()
+            ?: run {
+                sendMessage("Configure LLM connection before sending messages")
+                return
+            }
+
+        val response = runCatching {
+            client.execute(
+                prompt = Prompt(
+                    messages = listOf(
+                        Message.User(
+                            content = message,
+                            metaInfo = RequestMetaInfo(
+                                timestamp = Clock.System.now(),
+                            )
+                        )
+                    ),
+                    id = message.hashCode().toString(),
+                ),
+                model = model,
+            )
+        }
+            .getOrElse { error ->
+                sendMessage("Error while requesting LLM: ${error.message}")
+                return
+            }
+            .parts
+            .filterIsInstance<MessagePart.Text>()
+            .joinToString(
+                separator = "",
+                transform = MessagePart.Text::text,
+            )
+
+
+        sendMessage(response)
     }
 }
