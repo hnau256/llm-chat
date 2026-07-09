@@ -39,6 +39,7 @@ suspend fun generateLLMConnectionPage(
                     ChatPage.Button(
                         id = ChatPage.Button.Id(field.id),
                         title = createButtonTitle(
+                            icon = field.icon,
                             title = field.title,
                             additionalInfo = field.filled.ifTrue { "+" },
                         ),

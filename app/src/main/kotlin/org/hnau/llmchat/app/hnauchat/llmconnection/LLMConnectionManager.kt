@@ -6,6 +6,7 @@ import arrow.optics.Lens
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
+import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.dto.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.settings.update
@@ -49,6 +50,7 @@ class LLMConnectionManager(
         val id: String,
         val title: String,
         val filled: Boolean,
+        val icon: ButtonIcon,
         val set: suspend (String) -> Unit,
     )
 
@@ -60,6 +62,7 @@ class LLMConnectionManager(
                         createConfigField(
                             id = "apiKey",
                             title = "Api key",
+                            icon = ButtonIcon.key,
                             currentConfig = config,
                             decode = ApiKey::tryCreate,
                             prism = Lens(
@@ -167,12 +170,14 @@ class LLMConnectionManager(
     private fun <C : LLMClientConfig, T> createConfigField(
         id: String,
         title: String,
+        icon: ButtonIcon,
         currentConfig: C,
         prism: Lens<C, T?>,
         decode: (String) -> T?,
     ): ConfigField = ConfigField(
         id = id,
         title = title,
+        icon = icon,
         filled = prism.get(currentConfig) != null,
         set = { input ->
             val decoded = decode(input)
