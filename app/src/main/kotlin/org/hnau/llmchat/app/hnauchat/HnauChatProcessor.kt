@@ -6,7 +6,7 @@ import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
 import org.hnau.llmchat.app.db.DBAccessor
-import org.hnau.llmchat.app.db.settings.UserSettingsRepository
+import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 
 class HnauChatProcessor(

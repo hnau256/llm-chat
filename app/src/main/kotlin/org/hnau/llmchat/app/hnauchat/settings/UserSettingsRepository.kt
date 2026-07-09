@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.db.settings
+package org.hnau.llmchat.app.hnauchat.settings
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
