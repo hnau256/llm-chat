@@ -26,11 +26,11 @@ class ChatPage<out C>(
             ) : Type<C>
 
             data class Click<C>(
-                val onClick: suspend (context: C) -> ButtonResult,
+                val onClick: suspend () -> ButtonResult,
             ) : Type<C>
 
             data class Input<C>(
-                val onInput: suspend (context: C, input: String) -> ButtonResult,
+                val onInput: suspend (input: String) -> ButtonResult,
             ) : Type<C>
         }
     }

@@ -20,7 +20,7 @@ suspend fun generateBasePromptPage(
                 title = "Edit",
             ),
             type = ChatPage.Button.Type.Input(
-                onInput = { context, input ->
+                onInput = { input ->
                     context.settings.update { copy(basePrompt = input) }
                     ButtonResult.noNavigate
                 }

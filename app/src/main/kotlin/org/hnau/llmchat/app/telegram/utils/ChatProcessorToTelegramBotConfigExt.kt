@@ -130,7 +130,7 @@ private suspend fun <C> tryHandleText(
                     ifChild = { null },
                     ifClick = { null },
                     ifInput = { onInput ->
-                        val result = onInput(context.context, text)
+                        val result = onInput(text)
                         handleButtonResult(
                             context = context,
                             buttonResult = result,
@@ -285,7 +285,7 @@ private suspend fun <C> handleButtonClick(
                 )
             },
             ifClick = { onClick ->
-                val result = onClick(context.context)
+                val result = onClick()
                 handleButtonResult(
                     context = context,
                     buttonResult = result,

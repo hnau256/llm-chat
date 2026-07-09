@@ -47,7 +47,7 @@ suspend fun generateLLMConnectionPage(
                                 title = field.title,
                                 additionalInfo = field.filled.ifTrue { "+" },
                             ),
-                            type = ChatPage.Button.Type.Input { context, input ->
+                            type = ChatPage.Button.Type.Input { input ->
                                 field.set(input)
                                 ButtonResult.noNavigate
                             }

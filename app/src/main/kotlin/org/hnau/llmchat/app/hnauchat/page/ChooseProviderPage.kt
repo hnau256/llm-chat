@@ -16,7 +16,7 @@ suspend fun generateChooseProviderPage(
                 id = ChatPage.Button.Id(type.name.lowercase()),
                 title = type.name,
                 type = ChatPage.Button.Type.Click(
-                    onClick = { context ->
+                    onClick = {
                         context
                             .llmConnectionManager
                             .selectType(type)
