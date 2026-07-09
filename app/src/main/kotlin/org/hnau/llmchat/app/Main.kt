@@ -16,6 +16,7 @@ import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
 import org.hnau.llmchat.app.dto.Port
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
+import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.app.telegram.TelegramWebhookConfig
 import org.hnau.llmchat.app.telegram.launchTelegramChat
 import org.hnau.llmchat.app.utils.fileParser
@@ -28,7 +29,7 @@ private val logger = Logger.withTag("Main")
 fun main() {
 
     Logger.setLogWriters(platformLogWriter())
-    Logger.setMinSeverity(Severity.Debug)
+    Logger.setMinSeverity(Severity.Warn)
 
     val healthPort: Port? = getEnv(
         name = "HEALTH_PORT",
@@ -84,7 +85,8 @@ fun main() {
                     adapter = DBAdapter.sqlite(
                         databaseFile = databaseFile
                     )
-                )
+                ),
+                modelsProvider = ModelsProvider(),
             )
         )
     }

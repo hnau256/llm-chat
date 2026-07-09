@@ -1,16 +1,23 @@
 package org.hnau.llmchat.app.hnauchat.llmconnection
 
+import ai.koog.prompt.executor.clients.LLMClient
+import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
+import org.hnau.commons.gen.loggable.annotations.Loggable
+import org.hnau.commons.kotlin.KeyValue
 import org.hnau.llmchat.app.dto.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.settings.update
+import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.app.llm.model.LLMClientConfig
 import org.hnau.llmchat.app.llm.model.LLMProviderType
 import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 
+@Loggable
 class LLMConnectionManager(
     private val settings: UserSettingsRepository,
+    private val modelsProvider: ModelsProvider,
 ) {
 
     val config: LLMClientConfig?
@@ -59,6 +66,84 @@ class LLMConnectionManager(
                 }
             )
             .orEmpty()
+
+    data class ModelsItem(
+        val model: LLModel,
+        val selected: Boolean,
+    )
+
+    inner class Client(
+        private val clientType: LLMProviderType,
+        private val client: LLMClient,
+    ) {
+
+        private suspend fun getClientWithModels(): KeyValue<LLMClient, List<ModelsItem>> {
+
+            val selectedModelId = settings
+                .settings
+                .model
+                ?.takeIf { it.key == clientType }
+                ?.value
+
+            val models = modelsProvider
+                .getModels(client)
+                .getOrElse { error ->
+                    logger.w("Unable get models for client $client", error)
+                    null
+                }
+                .orEmpty()
+                .map { llmModel ->
+                    ModelsItem(
+                        model = llmModel,
+                        selected = llmModel.id == selectedModelId,
+                    )
+                }
+
+            return KeyValue(
+                key = client,
+                value = models,
+            )
+        }
+
+        suspend fun getModels(): List<ModelsItem> =
+            getClientWithModels().value
+
+        suspend fun getClientWithModel(): KeyValue<LLMClient, LLModel>? =
+            getClientWithModels().let { (client, models) ->
+
+                val model = models
+                    .firstOrNull(ModelsItem::selected)
+                    ?.model
+                    ?: return@let null
+
+                KeyValue(
+                    key = client,
+                    value = model,
+                )
+            }
+
+        suspend fun setModel(
+            model: LLModel,
+        ) {
+            settings.update {
+                copy(
+                    model = KeyValue(
+                        key = clientType,
+                        value = model.id,
+                    )
+                )
+            }
+        }
+    }
+
+    val client: Client?
+        get() = config?.run {
+            val client = tryCreateLLMClient() ?: return@run null
+            Client(
+                clientType = type,
+                client = client,
+            )
+        }
 
     private fun <C : LLMClientConfig, T> createConfigField(
         id: String,
