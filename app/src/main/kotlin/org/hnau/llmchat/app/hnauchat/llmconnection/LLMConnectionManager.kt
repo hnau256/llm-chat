@@ -14,6 +14,7 @@ import org.hnau.llmchat.app.hnauchat.settings.update
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.app.llm.model.LLMClientConfig
 import org.hnau.llmchat.app.llm.model.LLMProviderType
+import org.hnau.llmchat.app.llm.model.apiKey
 import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 
@@ -66,14 +67,7 @@ class LLMConnectionManager(
                             icon = ButtonIcon.key,
                             currentConfig = config,
                             decode = ApiKey::tryCreate,
-                            prism = Lens(
-                                get = LLMClientConfig.DeepSeek::apiKey,
-                                set = { config, apiKey ->
-                                    config.copy(
-                                        apiKey = apiKey,
-                                    )
-                                },
-                            )
+                            lens = LLMClientConfig.DeepSeek.apiKey,
                         )
                     )
                 }
@@ -174,20 +168,20 @@ class LLMConnectionManager(
         title: String,
         icon: ButtonIcon,
         currentConfig: C,
-        prism: Lens<C, T?>,
+        lens: Lens<C, T?>,
         decode: (String) -> T?,
     ): ConfigField = ConfigField(
         id = id,
         title = title,
         icon = icon,
-        filled = prism.get(currentConfig) != null,
+        filled = lens.get(currentConfig) != null,
         set = { input ->
             val decoded = decode(input)
             dependencies
                 .settings
                 .update {
                     copy(
-                        llmClientConfig = prism.set(currentConfig, decoded)
+                        llmClientConfig = lens.set(currentConfig, decoded)
                     )
                 }
         }

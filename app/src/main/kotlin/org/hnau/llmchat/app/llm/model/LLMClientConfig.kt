@@ -2,6 +2,7 @@ package org.hnau.llmchat.app.llm.model
 
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
+import arrow.optics.optics
 import korlibs.time.days
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -19,6 +20,7 @@ sealed interface LLMClientConfig {
 
     fun tryCreateLLMClient(): LLMClient?
 
+    @optics
     @Serializable
     @SerialName("deepseek")
     data class DeepSeek @JvmOverloads constructor(
@@ -34,6 +36,8 @@ sealed interface LLMClientConfig {
         override fun tryCreateLLMClient(): LLMClient? = DeepSeekLLMClient(
             apiKey = apiKey?.value ?: return null,
         )
+
+        companion object
     }
 
     companion object {
