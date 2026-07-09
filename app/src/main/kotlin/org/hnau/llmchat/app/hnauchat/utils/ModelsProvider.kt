@@ -2,7 +2,6 @@ package org.hnau.llmchat.app.hnauchat.utils
 
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
-import korlibs.time.hours
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.hnau.commons.kotlin.KeyValue
@@ -11,12 +10,11 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-class ModelsProvider(
-    private val cacheTime: Duration = 1.hours,
-) {
+class ModelsProvider {
 
-    private inner class ForClient(
+    private class ForClient(
         private val client: LLMClient,
+        private val cacheTime: Duration,
     ) {
 
         private val accessCacheMutex = Mutex()
@@ -42,10 +40,12 @@ class ModelsProvider(
 
     suspend fun getModels(
         client: LLMClient,
+        cacheTime: Duration,
     ): Result<List<LLModel>> = cache
         .getOrPut(client.clientName) {
             ForClient(
                 client = client,
+                cacheTime = cacheTime,
             )
         }
         .runCatching { get() }

@@ -73,6 +73,7 @@ class LLMConnectionManager(
 
     @Loggable
     inner class Client(
+        private val config: LLMClientConfig,
         private val clientType: LLMProviderType,
         private val client: LLMClient,
     ) {
@@ -86,7 +87,10 @@ class LLMConnectionManager(
                 ?.value
 
             val models = modelsProvider
-                .getModels(client)
+                .getModels(
+                    client = client,
+                    cacheTime = config.modelsListCacheTime,
+                )
                 .getOrElse { error ->
                     logger.w("Unable get models for client $client", error)
                     null
@@ -140,6 +144,7 @@ class LLMConnectionManager(
         get() = config?.run {
             val client = tryCreateLLMClient() ?: return@run null
             Client(
+                config = this,
                 clientType = type,
                 client = client,
             )
