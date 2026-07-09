@@ -6,6 +6,7 @@ import arrow.optics.Lens
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
+import org.hnau.commons.kotlin.ifNull
 import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.dto.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
@@ -132,6 +133,7 @@ class LLMConnectionManager(
 
                 val model = models
                     .firstOrNull(ModelsItem::selected)
+                    .ifNull { models.firstOrNull() }
                     ?.model
                     ?: return@let null
 
