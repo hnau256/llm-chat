@@ -2,13 +2,13 @@ package org.hnau.llmchat.app.llm.model
 
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
+import ai.koog.prompt.executor.ollama.client.OllamaClient
 import arrow.optics.optics
-import korlibs.time.days
+import io.ktor.http.Url
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.llmchat.app.dto.ApiKey
-import kotlin.time.Duration
 
 @Serializable
 @Fold
@@ -21,7 +21,7 @@ sealed interface LLMClientConfig {
     @optics
     @Serializable
     @SerialName("deepseek")
-    data class DeepSeek @JvmOverloads constructor(
+    data class DeepSeek(
         val apiKey: ApiKey? = null,
     ) : LLMClientConfig {
 
@@ -30,6 +30,23 @@ sealed interface LLMClientConfig {
 
         override fun tryCreateLLMClient(): LLMClient? = DeepSeekLLMClient(
             apiKey = apiKey?.value ?: return null,
+        )
+
+        companion object
+    }
+
+    @optics
+    @Serializable
+    @SerialName("ollama")
+    data class Ollama(
+        val url: String? = null,
+    ) : LLMClientConfig {
+
+        override val type: LLMProviderType
+            get() = LLMProviderType.Ollama
+
+        override fun tryCreateLLMClient(): LLMClient? = OllamaClient(
+            baseUrl = url ?: return null,
         )
 
         companion object

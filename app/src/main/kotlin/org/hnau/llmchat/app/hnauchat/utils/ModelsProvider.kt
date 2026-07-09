@@ -1,6 +1,8 @@
 package org.hnau.llmchat.app.hnauchat.utils
 
 import ai.koog.prompt.executor.clients.LLMClient
+import ai.koog.prompt.executor.ollama.client.OllamaClient
+import ai.koog.prompt.executor.ollama.client.toLLModel
 import ai.koog.prompt.llm.LLModel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,7 +29,10 @@ class ModelsProvider {
                 ?.takeIf { it.key + cacheTime > now }
                 ?.value
             if (result == null) {
-                result = client.models()
+                result = when (client) {
+                    is OllamaClient -> client.getModels().map { it.toLLModel() }
+                    else -> client.models()
+                }
                 cache = KeyValue(now, result)
             }
             result

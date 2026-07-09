@@ -3,6 +3,8 @@ package org.hnau.llmchat.app.hnauchat.llmconnection
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
+import co.touchlab.kermit.Logger
+import io.ktor.http.URLBuilder
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
@@ -17,6 +19,7 @@ import org.hnau.llmchat.app.llm.model.LLMProviderType
 import org.hnau.llmchat.app.llm.model.apiKey
 import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
+import org.hnau.llmchat.app.llm.model.url
 
 class LLMConnectionManager(
     private val dependencies: Dependencies,
@@ -69,7 +72,18 @@ class LLMConnectionManager(
                             lens = LLMClientConfig.DeepSeek.apiKey,
                         )
                     )
-                }
+                },
+                ifOllama = { config ->
+                    listOf(
+                        config.createConfigField(
+                            id = "url",
+                            title = "Url",
+                            icon = ButtonIcon.language,
+                            decode = { raw -> raw.takeIf(String::isNotEmpty) },
+                            lens = LLMClientConfig.Ollama.url,
+                        )
+                    )
+                },
             )
             .orEmpty()
 

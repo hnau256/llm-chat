@@ -8,6 +8,7 @@ plugins {
 dependencies {
     implementation(libs.koog.agents)
     implementation(libs.koog.deepseek.client)
+    implementation(libs.koog.ollama.client)
     implementation(libs.tgbotapi)
     implementation(libs.ktor.http)
     implementation(libs.ktor.server.cio)
