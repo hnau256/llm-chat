@@ -3,7 +3,6 @@ package org.hnau.llmchat.app.hnauchat.llmconnection
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
-import co.touchlab.kermit.Logger
 import io.ktor.http.Url
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
@@ -197,7 +196,6 @@ class LLMConnectionManager(
         filled = lens.get(this) != null,
         set = { input ->
             val decoded = decode(input)
-            Logger.w("QWERTY. decoded = $decoded")
             dependencies
                 .settings
                 .update {
