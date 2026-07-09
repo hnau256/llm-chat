@@ -4,5 +4,5 @@ interface Chat {
 
     suspend fun sendMessage(
         text: String,
-    )
+    ): List<MessageId>
 }
