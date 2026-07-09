@@ -11,6 +11,8 @@ import org.hnau.llmchat.app.dto.ApiKey
 @Fold
 sealed interface LLMClientConfig {
 
+    val type: LLMProviderType
+
     fun tryCreateLLMClient(): LLMClient?
 
     @Serializable
@@ -19,17 +21,11 @@ sealed interface LLMClientConfig {
         val apiKey: ApiKey? = null,
     ) : LLMClientConfig {
 
+        override val type: LLMProviderType
+            get() = LLMProviderType.DeepSeek
+
         override fun tryCreateLLMClient(): LLMClient? = DeepSeekLLMClient(
             apiKey = apiKey?.value ?: return null,
         )
-    }
-
-    companion object {
-
-        val all: List<LLMClientConfig> by lazy {
-            LLMClientConfig::class.sealedSubclasses.map { subclass ->
-                subclass.java.getDeclaredConstructor().newInstance() as LLMClientConfig
-            }
-        }
     }
 }
