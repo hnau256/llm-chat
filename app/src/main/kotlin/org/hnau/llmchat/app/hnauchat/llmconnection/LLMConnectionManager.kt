@@ -61,11 +61,10 @@ class LLMConnectionManager(
             ?.foldRaw(
                 ifDeepSeek = { config ->
                     listOf(
-                        createConfigField(
+                        config.createConfigField(
                             id = "apiKey",
                             title = "Api key",
                             icon = ButtonIcon.key,
-                            currentConfig = config,
                             decode = ApiKey::tryCreate,
                             lens = LLMClientConfig.DeepSeek.apiKey,
                         )
@@ -163,25 +162,27 @@ class LLMConnectionManager(
             )
         }
 
-    private fun <C : LLMClientConfig, T> createConfigField(
+    private fun <C : LLMClientConfig, T> C.createConfigField(
         id: String,
         title: String,
         icon: ButtonIcon,
-        currentConfig: C,
         lens: Lens<C, T?>,
         decode: (String) -> T?,
     ): ConfigField = ConfigField(
         id = id,
         title = title,
         icon = icon,
-        filled = lens.get(currentConfig) != null,
+        filled = lens.get(this) != null,
         set = { input ->
             val decoded = decode(input)
             dependencies
                 .settings
                 .update {
                     copy(
-                        llmClientConfig = lens.set(currentConfig, decoded)
+                        llmClientConfig = lens.set(
+                            source = this@createConfigField,
+                            focus = decoded,
+                        )
                     )
                 }
         }
