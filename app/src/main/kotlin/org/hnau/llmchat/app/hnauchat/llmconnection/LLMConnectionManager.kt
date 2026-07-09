@@ -14,7 +14,6 @@ import org.hnau.llmchat.app.llm.model.LLMProviderType
 import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 
-@Loggable
 class LLMConnectionManager(
     private val settings: UserSettingsRepository,
     private val modelsProvider: ModelsProvider,
@@ -72,6 +71,7 @@ class LLMConnectionManager(
         val selected: Boolean,
     )
 
+    @Loggable
     inner class Client(
         private val clientType: LLMProviderType,
         private val client: LLMClient,
