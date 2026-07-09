@@ -33,7 +33,7 @@ class ChatPage<out C>(
         sealed interface Type<out C> {
 
             data class Child<out C>(
-                val message: ChatPage<C>,
+                val page: ChatPage<C>,
             ) : Type<C>
 
             data class Click<C>(

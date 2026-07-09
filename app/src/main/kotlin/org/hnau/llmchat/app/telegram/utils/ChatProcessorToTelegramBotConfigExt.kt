@@ -443,7 +443,7 @@ private data class ExtendedContext<C>(
                             id = rootPage.id,
                             title = rootPage.title,
                             type = ChatPage.Button.Type.Child(
-                                message = message,
+                                page = message,
                             )
                         )
                     }

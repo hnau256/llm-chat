@@ -1,5 +1,6 @@
 package org.hnau.llmchat.app.hnauchat.page
 
+import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.llmchat.app.chat.ButtonResult
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.db.settings.update
@@ -19,8 +20,13 @@ suspend fun generateChooseProviderPage(
                 type = ChatPage.Button.Type.Click(
                     onClick = { context ->
                         context.settings.update {
-                            copy(
-                                llmClientConfig = config,
+                            (llmClientConfig?.javaClass == config.javaClass).foldBoolean(
+                                ifTrue = { this },
+                                ifFalse = {
+                                    copy(
+                                        llmClientConfig = config,
+                                    )
+                                }
                             )
                         }
                         ButtonResult.navigateBack
