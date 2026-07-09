@@ -4,7 +4,6 @@ import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
 import co.touchlab.kermit.Logger
-import io.ktor.http.URLBuilder
 import io.ktor.http.Url
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
@@ -21,6 +20,7 @@ import org.hnau.llmchat.app.llm.model.apiKey
 import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 import org.hnau.llmchat.app.llm.model.url
+import org.hnau.llmchat.app.utils.tryParse
 
 class LLMConnectionManager(
     private val dependencies: Dependencies,
@@ -81,7 +81,12 @@ class LLMConnectionManager(
                             title = "Url",
                             icon = ButtonIcon.language,
                             decode = { raw ->
-                                runCatching { Url(raw) }.getOrNull()
+                                Url
+                                    .tryParse(
+                                        raw = raw,
+                                        defaultProtocol = "http",
+                                    )
+                                    .getOrNull()
                             },
                             lens = LLMClientConfig.Ollama.url,
                         )
@@ -192,6 +197,7 @@ class LLMConnectionManager(
         filled = lens.get(this) != null,
         set = { input ->
             val decoded = decode(input)
+            Logger.w("QWERTY. decoded = $decoded")
             dependencies
                 .settings
                 .update {
