@@ -30,7 +30,6 @@ import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
 import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.chat.ButtonResult
-import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
@@ -82,17 +81,10 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
         }
 
 
-        val chat = object : Chat {
-
-            override suspend fun sendMessage(
-                text: String,
-            ) {
-                bot.sendMessage(
-                    chatId = context.chatId,
-                    text = text,
-                )
-            }
-        }
+        val chat = TelegramChat(
+            bot = this,
+            chatId = context.chatId,
+        )
 
         setMessageReaction(
             message = message,
