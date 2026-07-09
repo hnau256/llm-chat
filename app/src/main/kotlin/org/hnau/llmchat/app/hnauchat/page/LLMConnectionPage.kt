@@ -1,11 +1,12 @@
 package org.hnau.llmchat.app.hnauchat.page
 
-import org.hnau.commons.kotlin.ifTrue
+import org.hnau.commons.kotlin.it
 import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.chat.ButtonResult
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.createButtonTitle
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
+import org.hnau.llmchat.app.hnauchat.llmconnection.fold
 import org.hnau.llmchat.app.llm.model.name
 
 suspend fun generateLLMConnectionPage(
@@ -41,7 +42,11 @@ suspend fun generateLLMConnectionPage(
                         title = createButtonTitle(
                             icon = field.icon,
                             title = field.title,
-                            additionalInfo = field.filled.ifTrue { "+" },
+                            additionalInfo = field.content.fold(
+                                ifNoValue = { null },
+                                ifSensitive = { "+" },
+                                ifValue = ::it,
+                            ),
                         ),
                         type = ChatPage.Button.Type.Input { input ->
                             field.set(input)

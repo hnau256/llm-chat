@@ -2,11 +2,16 @@ package org.hnau.llmchat.app.hnauchat.llmconnection
 
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
+import arrow.core.toOption
 import arrow.optics.Lens
+import arrow.optics.Prism
 import io.ktor.http.Url
+import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
+import org.hnau.commons.kotlin.foldBoolean
+import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.llmchat.app.chat.ButtonIcon
 import org.hnau.llmchat.app.dto.ApiKey
@@ -54,10 +59,24 @@ class LLMConnectionManager(
     data class ConfigField(
         val id: String,
         val title: String,
-        val filled: Boolean,
         val icon: ButtonIcon,
+        val content: Content,
         val set: suspend (String) -> Unit,
-    )
+    ) {
+
+        @Fold
+        sealed interface Content {
+
+            data object NoValue : Content
+
+            data object Sensitive : Content
+
+            data class Value(
+                val value: String,
+            ) : Content
+        }
+
+    }
 
     val configFields: List<ConfigField>
         get() = config
@@ -68,8 +87,16 @@ class LLMConnectionManager(
                             id = "apiKey",
                             title = "Api key",
                             icon = ButtonIcon.key,
-                            decode = ApiKey::tryCreate,
-                            lens = LLMClientConfig.DeepSeek.apiKey,
+                            sensitive = true,
+                            stringMapper = Prism(
+                                getOption = { raw ->
+                                    ApiKey
+                                        .tryCreate(raw)
+                                        .toOption()
+                                },
+                                reverseGet = ApiKey::value,
+                            ),
+                            extractor = LLMClientConfig.DeepSeek.apiKey,
                         )
                     )
                 },
@@ -79,15 +106,20 @@ class LLMConnectionManager(
                             id = "url",
                             title = "Url",
                             icon = ButtonIcon.language,
-                            decode = { raw ->
-                                Url
-                                    .tryParse(
-                                        raw = raw,
-                                        defaultProtocol = "http",
-                                    )
-                                    .getOrNull()
-                            },
-                            lens = LLMClientConfig.Ollama.url,
+                            sensitive = false,
+                            stringMapper = Prism(
+                                getOption = {
+                                    Url
+                                        .tryParse(
+                                            raw = it,
+                                            defaultProtocol = "http",
+                                        )
+                                        .getOrNull()
+                                        .toOption()
+                                },
+                                reverseGet = { url -> url.toString() },
+                            ),
+                            extractor = LLMClientConfig.Ollama.url,
                         )
                     )
                 },
@@ -187,22 +219,38 @@ class LLMConnectionManager(
         id: String,
         title: String,
         icon: ButtonIcon,
-        lens: Lens<C, T?>,
-        decode: (String) -> T?,
+        sensitive: Boolean,
+        extractor: Lens<C, T?>,
+        stringMapper: Prism<String, T>,
     ): ConfigField = ConfigField(
         id = id,
         title = title,
         icon = icon,
-        filled = lens.get(this) != null,
+        content = extractor.get(this).foldNullable(
+            ifNull = {
+                ConfigField.Content.NoValue
+            },
+            ifNotNull = { value ->
+                sensitive.foldBoolean(
+                    ifTrue = { ConfigField.Content.Sensitive },
+                    ifFalse = {
+                        stringMapper
+                            .reverseGet(value)
+                            .let(ConfigField.Content::Value)
+                    }
+                )
+            }
+        ),
         set = { input ->
-            val decoded = decode(input)
             dependencies
                 .settings
                 .update {
                     copy(
-                        llmClientConfig = lens.set(
+                        llmClientConfig = extractor.set(
                             source = this@createConfigField,
-                            focus = decoded,
+                            focus = stringMapper
+                                .getOrModify(input)
+                                .getOrNull(),
                         )
                     )
                 }
