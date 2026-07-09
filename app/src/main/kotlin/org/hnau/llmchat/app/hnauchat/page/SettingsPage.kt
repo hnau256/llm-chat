@@ -14,6 +14,7 @@ suspend fun generateSettingsPage(
         run {
             val (page, correct) = generateLLMConnectionPage(context)
             ChatPage.Button(
+                id = ChatPage.Button.Id("connection"),
                 title = createButtonTitle(
                     icon = correct.foldBoolean(
                         ifFalse = { ButtonIcon.error },
@@ -27,6 +28,7 @@ suspend fun generateSettingsPage(
             )
         },
         ChatPage.Button(
+            id = ChatPage.Button.Id("basePrompt"),
             title = createButtonTitle(
                 icon = ButtonIcon.rules,
                 title = "Base prompt",

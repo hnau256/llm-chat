@@ -2,6 +2,7 @@ package org.hnau.llmchat.app.hnauchat
 
 import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
+import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
 import org.hnau.llmchat.app.db.DBAccessor
@@ -18,6 +19,7 @@ class HnauChatProcessor(
 
     override val rootPages: List<ChatRootPage<Context>> = listOf(
         ChatRootPage(
+            id = ChatPage.Button.Id("settings"),
             title = "Settings",
             generatePage = { context ->
                 generateSettingsPage(context)

@@ -8,26 +8,15 @@ class ChatPage<out C>(
 ) {
 
     data class Button<out C>(
+        val id: Id,
         val title: String,
         val type: Type<C>,
-        val id: Id = Id.generate(title),
     ) {
 
         @JvmInline
         value class Id(
             val id: String,
-        ) {
-
-            companion object {
-
-                fun generate(
-                    title: String,
-                ): Id = title
-                    .lowercase()
-                    .filter(Char::isLetterOrDigit)
-                    .let(::Id)
-            }
-        }
+        )
 
         @Fold
         sealed interface Type<out C> {

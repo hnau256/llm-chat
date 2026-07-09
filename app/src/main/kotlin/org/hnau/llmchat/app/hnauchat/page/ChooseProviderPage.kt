@@ -16,6 +16,7 @@ suspend fun generateChooseProviderPage(
         .all
         .map { config ->
             ChatPage.Button(
+                id = ChatPage.Button.Id(config.name.lowercase()),
                 title = config.name,
                 type = ChatPage.Button.Type.Click(
                     onClick = { context ->

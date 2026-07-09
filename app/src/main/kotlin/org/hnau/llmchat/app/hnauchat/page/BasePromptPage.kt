@@ -14,6 +14,7 @@ suspend fun generateBasePromptPage(
     text = "Base prompt: ${context.settings.settings.basePrompt}",
     buttons = listOf(
         ChatPage.Button(
+            id = ChatPage.Button.Id("edit"),
             title = createButtonTitle(
                 icon = ButtonIcon.edit,
                 title = "Edit",
