@@ -98,7 +98,7 @@ class LLMConnectionManager(
                 .modelsProvider
                 .getModels(
                     client = client,
-                    cacheTime = config.modelsListCacheTime,
+                    cacheTime = config.type.modelsListCacheTime,
                 )
                 .getOrElse { error ->
                     logger.w("Unable get models for client $client", error)

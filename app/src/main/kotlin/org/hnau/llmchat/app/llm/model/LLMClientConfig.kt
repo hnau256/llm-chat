@@ -14,8 +14,6 @@ import kotlin.time.Duration
 @Fold
 sealed interface LLMClientConfig {
 
-    val modelsListCacheTime: Duration
-
     val type: LLMProviderType
 
     fun tryCreateLLMClient(): LLMClient?
@@ -27,9 +25,6 @@ sealed interface LLMClientConfig {
         val apiKey: ApiKey? = null,
     ) : LLMClientConfig {
 
-        override val modelsListCacheTime: Duration
-            get() = cacheTimeLarge
-
         override val type: LLMProviderType
             get() = LLMProviderType.DeepSeek
 
@@ -38,10 +33,5 @@ sealed interface LLMClientConfig {
         )
 
         companion object
-    }
-
-    companion object {
-
-        private val cacheTimeLarge: Duration = 1.days
     }
 }
