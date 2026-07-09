@@ -10,6 +10,7 @@ import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
+import org.hnau.llmchat.app.chat.MessageId
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
@@ -71,8 +72,10 @@ class HnauChatProcessor(
 
     override suspend fun Chat.handleMessage(
         context: Context,
+        replayFor: MessageId?,
         message: String
     ) {
+
         val (client, model) = context
             .llmConnectionManager
             .client
@@ -108,7 +111,6 @@ class HnauChatProcessor(
                 separator = "",
                 transform = MessagePart.Text::text,
             )
-
 
         sendMessage(response)
     }

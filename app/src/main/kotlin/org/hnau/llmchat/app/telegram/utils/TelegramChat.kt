@@ -22,9 +22,7 @@ class TelegramChat(
                     text = chunk,
                 )
                 .messageId
-                .long
-                .toString()
-                .let(::MessageId)
+                .toMessageId()
         }
 
 

@@ -10,6 +10,7 @@ interface ChatProcessor<C> {
 
     suspend fun Chat.handleMessage(
         context: C,
+        replayFor: MessageId?,
         message: String,
     )
 }
