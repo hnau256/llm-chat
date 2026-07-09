@@ -10,6 +10,7 @@ import dev.inmo.tgbotapi.extensions.api.bot.setMyCommands
 import dev.inmo.tgbotapi.extensions.api.deleteMessage
 import dev.inmo.tgbotapi.extensions.api.edit.text.editMessageText
 import dev.inmo.tgbotapi.extensions.api.send.sendMessage
+import dev.inmo.tgbotapi.extensions.api.send.setMessageReaction
 import dev.inmo.tgbotapi.extensions.behaviour_builder.BehaviourContextReceiver
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onDataCallbackQuery
 import dev.inmo.tgbotapi.extensions.behaviour_builder.triggers_handling.onText
@@ -92,6 +93,11 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
                 )
             }
         }
+
+        setMessageReaction(
+            message = message,
+            emoji = "👀",
+        )
 
         chat.handleMessage(
             context = context.context,
