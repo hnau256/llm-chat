@@ -5,6 +5,7 @@ import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
 import co.touchlab.kermit.Logger
 import io.ktor.http.URLBuilder
+import io.ktor.http.Url
 import org.hnau.commons.gen.loggable.annotations.Loggable
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
@@ -79,7 +80,9 @@ class LLMConnectionManager(
                             id = "url",
                             title = "Url",
                             icon = ButtonIcon.language,
-                            decode = { raw -> raw.takeIf(String::isNotEmpty) },
+                            decode = { raw ->
+                                runCatching { Url(raw) }.getOrNull()
+                            },
                             lens = LLMClientConfig.Ollama.url,
                         )
                     )

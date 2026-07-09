@@ -4,7 +4,10 @@ import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
 import ai.koog.prompt.executor.ollama.client.OllamaClient
 import arrow.optics.optics
+import io.ktor.http.DEFAULT_PORT
+import io.ktor.http.URLBuilder
 import io.ktor.http.Url
+import io.ktor.http.takeFrom
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.hnau.commons.gen.fold.annotations.Fold
@@ -39,16 +42,31 @@ sealed interface LLMClientConfig {
     @Serializable
     @SerialName("ollama")
     data class Ollama(
-        val url: String? = null,
+        val url: Url? = null,
     ) : LLMClientConfig {
 
         override val type: LLMProviderType
             get() = LLMProviderType.Ollama
 
         override fun tryCreateLLMClient(): LLMClient? = OllamaClient(
-            baseUrl = url ?: return null,
+            baseUrl = url
+                ?.run {
+                    URLBuilder()
+                        .takeFrom(this)
+                        .apply {
+                            port = specifiedPort
+                                .takeIf { it != DEFAULT_PORT }
+                                ?: defaultPort
+                        }
+                        .build()
+                }
+                ?.toString()
+                ?: return null,
         )
 
-        companion object
+        companion object {
+
+            private const val defaultPort: Int = 11434
+        }
     }
 }
