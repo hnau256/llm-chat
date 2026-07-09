@@ -4,6 +4,7 @@ import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.llm.LLModel
 import arrow.optics.Lens
 import org.hnau.commons.gen.loggable.annotations.Loggable
+import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.KeyValue
 import org.hnau.llmchat.app.dto.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
@@ -15,12 +16,19 @@ import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 
 class LLMConnectionManager(
-    private val settings: UserSettingsRepository,
-    private val modelsProvider: ModelsProvider,
+    private val dependencies: Dependencies,
 ) {
 
+    @Pipe
+    interface Dependencies {
+
+        val settings: UserSettingsRepository
+
+        val modelsProvider: ModelsProvider
+    }
+
     val config: LLMClientConfig?
-        get() = settings.settings.llmClientConfig
+        get() = dependencies.settings.settings.llmClientConfig
 
     suspend fun selectType(
         type: LLMProviderType,
@@ -28,11 +36,13 @@ class LLMConnectionManager(
         if (type == config?.type) {
             return
         }
-        settings.update {
-            copy(
-                llmClientConfig = type.createBaseConfig(),
-            )
-        }
+        dependencies
+            .settings
+            .update {
+                copy(
+                    llmClientConfig = type.createBaseConfig(),
+                )
+            }
     }
 
     data class ConfigField(
@@ -80,13 +90,15 @@ class LLMConnectionManager(
 
         private suspend fun getClientWithModels(): KeyValue<LLMClient, List<ModelsItem>> {
 
-            val selectedModelId = settings
+            val selectedModelId = dependencies
+                .settings
                 .settings
                 .model
                 ?.takeIf { it.key == clientType }
                 ?.value
 
-            val models = modelsProvider
+            val models = dependencies
+                .modelsProvider
                 .getModels(
                     client = client,
                     cacheTime = config.modelsListCacheTime,
@@ -129,14 +141,16 @@ class LLMConnectionManager(
         suspend fun setModel(
             model: LLModel,
         ) {
-            settings.update {
-                copy(
-                    model = KeyValue(
-                        key = clientType,
-                        value = model.id,
+            dependencies
+                .settings
+                .update {
+                    copy(
+                        model = KeyValue(
+                            key = clientType,
+                            value = model.id,
+                        )
                     )
-                )
-            }
+                }
         }
     }
 
@@ -162,11 +176,13 @@ class LLMConnectionManager(
         filled = prism.get(currentConfig) != null,
         set = { input ->
             val decoded = decode(input)
-            settings.update {
-                copy(
-                    llmClientConfig = prism.set(currentConfig, decoded)
-                )
-            }
+            dependencies
+                .settings
+                .update {
+                    copy(
+                        llmClientConfig = prism.set(currentConfig, decoded)
+                    )
+                }
         }
     )
 }

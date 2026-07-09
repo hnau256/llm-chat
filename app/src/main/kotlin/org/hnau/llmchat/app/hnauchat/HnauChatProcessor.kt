@@ -4,6 +4,7 @@ import ai.koog.prompt.Prompt
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
+import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.llmchat.app.chat.Chat
 import org.hnau.llmchat.app.chat.ChatId
 import org.hnau.llmchat.app.chat.ChatPage
@@ -17,9 +18,22 @@ import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import kotlin.time.Clock
 
 class HnauChatProcessor(
-    private val db: DBAccessor,
-    private val modelsProvider: ModelsProvider,
+    private val dependencies: Dependencies,
 ) : ChatProcessor<HnauChatProcessor.Context> {
+
+    @Pipe
+    interface Dependencies {
+
+        val db: DBAccessor
+
+        val modelsProvider: ModelsProvider
+
+        fun llmConnectionManager(
+            settings: UserSettingsRepository,
+        ): LLMConnectionManager.Dependencies
+
+        companion object
+    }
 
     data class Context(
         val settings: UserSettingsRepository,
@@ -41,15 +55,16 @@ class HnauChatProcessor(
     ): Context {
 
         val settings = UserSettingsRepository.create(
-            db = db,
+            db = dependencies.db,
             chatId = chatId,
         )
 
         return Context(
             settings = settings,
             llmConnectionManager = LLMConnectionManager(
-                settings = settings,
-                modelsProvider = modelsProvider,
+                dependencies = dependencies.llmConnectionManager(
+                    settings = settings,
+                )
             )
         )
     }

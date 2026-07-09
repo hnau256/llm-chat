@@ -16,6 +16,7 @@ import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
 import org.hnau.llmchat.app.dto.Port
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
+import org.hnau.llmchat.app.hnauchat.impl
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.app.telegram.TelegramWebhookConfig
 import org.hnau.llmchat.app.telegram.launchTelegramChat
@@ -81,12 +82,14 @@ fun main() {
                 )
             },
             chatProcessor = HnauChatProcessor(
-                db = DBAccessor.create(
-                    adapter = DBAdapter.sqlite(
-                        databaseFile = databaseFile
-                    )
+                dependencies = HnauChatProcessor.Dependencies.impl(
+                    db = DBAccessor.create(
+                        adapter = DBAdapter.sqlite(
+                            databaseFile = databaseFile
+                        )
+                    ),
+                    modelsProvider = ModelsProvider(),
                 ),
-                modelsProvider = ModelsProvider(),
             )
         )
     }
