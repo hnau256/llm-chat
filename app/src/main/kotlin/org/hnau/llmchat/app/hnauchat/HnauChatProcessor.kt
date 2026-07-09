@@ -6,6 +6,7 @@ import org.hnau.llmchat.app.chat.ChatPage
 import org.hnau.llmchat.app.chat.ChatProcessor
 import org.hnau.llmchat.app.chat.ChatRootPage
 import org.hnau.llmchat.app.db.DBAccessor
+import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 
@@ -15,6 +16,7 @@ class HnauChatProcessor(
 
     data class Context(
         val settings: UserSettingsRepository,
+        val llmConnectionManager: LLMConnectionManager,
     )
 
     override val rootPages: List<ChatRootPage<Context>> = listOf(
@@ -29,12 +31,20 @@ class HnauChatProcessor(
 
     override suspend fun buildContext(
         chatId: ChatId,
-    ): Context = Context(
-        settings = UserSettingsRepository.create(
+    ): Context {
+
+        val settings = UserSettingsRepository.create(
             db = db,
             chatId = chatId,
         )
-    )
+
+        return Context(
+            settings = settings,
+            llmConnectionManager = LLMConnectionManager(
+                settings = settings,
+            )
+        )
+    }
 
     override suspend fun Chat.handleMessage(
         context: Context,
