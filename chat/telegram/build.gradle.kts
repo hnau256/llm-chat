@@ -7,6 +7,7 @@ dependencies {
     implementation(libs.tgbotapi)
     implementation(libs.ktor.http)
     implementation(libs.ktor.server)
+    implementation(libs.commonmark)
     implementation(project(":common"))
     implementation(project(":chat:api"))
 }

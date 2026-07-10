@@ -2,7 +2,11 @@ package org.hnau.llmchat.chat.api
 
 interface Chat {
 
+    suspend fun prepareMessages(
+        mdText: String,
+    ): MessageToSend
+
     suspend fun sendMessage(
-        text: String,
-    ): List<MessageId>
+        message: MessageToSend,
+    ): MessageId
 }

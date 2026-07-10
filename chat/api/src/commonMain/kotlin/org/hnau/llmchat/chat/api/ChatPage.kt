@@ -1,6 +1,7 @@
 package org.hnau.llmchat.chat.api
 
 import org.hnau.commons.gen.fold.annotations.Fold
+import kotlin.jvm.JvmInline
 
 class ChatPage<out C>(
     val text: String,

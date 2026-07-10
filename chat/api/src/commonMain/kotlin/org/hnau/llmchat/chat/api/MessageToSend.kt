@@ -3,6 +3,6 @@ package org.hnau.llmchat.chat.api
 import kotlin.jvm.JvmInline
 
 @JvmInline
-value class MessageId(
-    val id: String,
+value class MessageToSend(
+    val text: String,
 )

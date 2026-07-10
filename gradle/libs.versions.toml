@@ -16,3 +16,4 @@ ktor-server = { module = "io.ktor:ktor-server", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+commonmark = { module = "org.commonmark:commonmark", version = "0.29.0" }
