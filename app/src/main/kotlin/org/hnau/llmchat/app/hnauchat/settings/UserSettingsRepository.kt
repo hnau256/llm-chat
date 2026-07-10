@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.toMapper
-import org.hnau.llmchat.app.chat.ChatId
+import org.hnau.llmchat.chat.api.ChatId
 import org.hnau.llmchat.app.db.DBAccessor
 import java.sql.PreparedStatement
 import java.sql.ResultSet

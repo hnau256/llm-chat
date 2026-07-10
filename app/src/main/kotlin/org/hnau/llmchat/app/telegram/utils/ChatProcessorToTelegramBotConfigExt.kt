@@ -28,14 +28,14 @@ import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.lazy.AsyncLazy
 import org.hnau.commons.kotlin.removePrefixOrNull
-import org.hnau.llmchat.app.chat.ButtonIcon
-import org.hnau.llmchat.app.chat.ButtonResult
-import org.hnau.llmchat.app.chat.ChatId
-import org.hnau.llmchat.app.chat.ChatPage
-import org.hnau.llmchat.app.chat.ChatProcessor
-import org.hnau.llmchat.app.chat.ChatRootPage
-import org.hnau.llmchat.app.chat.createButtonTitle
-import org.hnau.llmchat.app.chat.fold
+import org.hnau.llmchat.chat.api.ButtonIcon
+import org.hnau.llmchat.chat.api.ButtonResult
+import org.hnau.llmchat.chat.api.ChatId
+import org.hnau.llmchat.chat.api.ChatPage
+import org.hnau.llmchat.chat.api.ChatProcessor
+import org.hnau.llmchat.chat.api.ChatRootPage
+import org.hnau.llmchat.chat.api.createButtonTitle
+import org.hnau.llmchat.chat.api.fold
 import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
 
 private val logger = Logger.withTag("ChatProcessorToTelegramBotConfigExt")

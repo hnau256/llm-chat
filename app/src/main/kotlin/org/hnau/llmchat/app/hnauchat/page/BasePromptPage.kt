@@ -1,9 +1,9 @@
 package org.hnau.llmchat.app.hnauchat.page
 
-import org.hnau.llmchat.app.chat.ButtonIcon
-import org.hnau.llmchat.app.chat.ButtonResult
-import org.hnau.llmchat.app.chat.ChatPage
-import org.hnau.llmchat.app.chat.createButtonTitle
+import org.hnau.llmchat.chat.api.ButtonIcon
+import org.hnau.llmchat.chat.api.ButtonResult
+import org.hnau.llmchat.chat.api.ChatPage
+import org.hnau.llmchat.chat.api.createButtonTitle
 import org.hnau.llmchat.app.hnauchat.settings.update
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import kotlin.collections.listOf

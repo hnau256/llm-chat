@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.chat
+package org.hnau.llmchat.chat.api
 
 data class ButtonResult(
     val navigateBackCount: Int,

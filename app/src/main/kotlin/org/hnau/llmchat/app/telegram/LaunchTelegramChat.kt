@@ -10,7 +10,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.llmchat.app.chat.ChatProcessor
+import org.hnau.llmchat.chat.api.ChatProcessor
 import org.hnau.llmchat.app.telegram.utils.toTelegramBotConfig
 
 private val logger = Logger.withTag("LaunchTelegramChat")

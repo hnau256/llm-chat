@@ -1,7 +1,7 @@
 package org.hnau.llmchat.app.hnauchat.page
 
-import org.hnau.llmchat.app.chat.ButtonResult
-import org.hnau.llmchat.app.chat.ChatPage
+import org.hnau.llmchat.chat.api.ButtonResult
+import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.app.llm.model.LLMProviderType
 

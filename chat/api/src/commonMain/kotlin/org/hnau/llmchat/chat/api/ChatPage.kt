@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.chat
+package org.hnau.llmchat.chat.api
 
 import org.hnau.commons.gen.fold.annotations.Fold
 
