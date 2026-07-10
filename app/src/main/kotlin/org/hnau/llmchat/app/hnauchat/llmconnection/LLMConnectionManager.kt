@@ -14,7 +14,7 @@ import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.llmchat.chat.api.ButtonIcon
-import org.hnau.llmchat.app.dto.ApiKey
+import org.hnau.llmchat.common.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.settings.update
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider

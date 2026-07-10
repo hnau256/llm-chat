@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram.utils
+package org.hnau.llmchat.chat.telegram.utils
 
 import arrow.core.nonEmptyListOf
 import arrow.core.tail
@@ -36,7 +36,6 @@ import org.hnau.llmchat.chat.api.ChatProcessor
 import org.hnau.llmchat.chat.api.ChatRootPage
 import org.hnau.llmchat.chat.api.createButtonTitle
 import org.hnau.llmchat.chat.api.fold
-import org.hnau.llmchat.app.llm.WaitingForAnswerInputs
 
 private val logger = Logger.withTag("ChatProcessorToTelegramBotConfigExt")
 

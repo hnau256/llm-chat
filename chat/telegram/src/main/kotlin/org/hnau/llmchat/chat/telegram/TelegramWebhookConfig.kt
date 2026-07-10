@@ -1,10 +1,10 @@
-package org.hnau.llmchat.app.telegram
+package org.hnau.llmchat.chat.telegram
 
 import io.ktor.http.Url
 import io.ktor.server.engine.ApplicationEngineFactory
-import org.hnau.llmchat.app.dto.Port
+import org.hnau.llmchat.common.Port
 
-internal data class TelegramWebhookConfig(
+data class TelegramWebhookConfig(
     val url: Url,
     val port: Port,
     val serverFactory: ApplicationEngineFactory<*, *>,

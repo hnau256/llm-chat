@@ -1,9 +1,7 @@
-package org.hnau.llmchat.app.llm
+package org.hnau.llmchat.chat.telegram.utils
 
 import dev.inmo.tgbotapi.types.IdChatIdentifier
 import dev.inmo.tgbotapi.types.MessageId
-import org.hnau.llmchat.app.telegram.utils.CallbackDataPath
-import java.util.concurrent.ConcurrentHashMap
 
 data class WaitingInput(
     val path: CallbackDataPath,
@@ -12,7 +10,7 @@ data class WaitingInput(
 
 internal class WaitingForAnswerInputs {
 
-    private val inputs = ConcurrentHashMap<IdChatIdentifier, WaitingInput>()
+    private val inputs = HashMap<IdChatIdentifier, WaitingInput>()
 
     data class InChat(
         val add: (inputPath: CallbackDataPath, promptMessageId: MessageId) -> Unit,

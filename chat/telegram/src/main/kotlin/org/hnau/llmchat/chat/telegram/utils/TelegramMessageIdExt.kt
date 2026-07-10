@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram.utils
+package org.hnau.llmchat.chat.telegram.utils
 
 import org.hnau.llmchat.chat.api.MessageId
 import dev.inmo.tgbotapi.types.MessageId as TelegramMessageId

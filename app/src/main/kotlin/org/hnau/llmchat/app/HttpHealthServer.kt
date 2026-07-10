@@ -7,7 +7,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
-import org.hnau.llmchat.app.dto.Port
+import org.hnau.llmchat.common.Port
 
 suspend fun httpHealthServer(
     port: Port,

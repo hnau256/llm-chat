@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram.utils
+package org.hnau.llmchat.chat.telegram.utils
 
 import dev.inmo.tgbotapi.bot.TelegramBot
 import dev.inmo.tgbotapi.extensions.api.send.sendMessage

@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram.utils
+package org.hnau.llmchat.chat.telegram.utils
 
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
@@ -8,6 +8,7 @@ import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.plus
 import org.hnau.commons.kotlin.mapper.stringToStringsBySeparator
 import org.hnau.commons.kotlin.mapper.toListMapper
+import kotlin.jvm.JvmInline
 
 data class CallbackDataPath(
     val entries: NonEmptyList<Entry>,

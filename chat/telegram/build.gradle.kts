@@ -1,0 +1,12 @@
+plugins {
+    id(hnau.plugins.hnau.jvm.get().pluginId)
+}
+
+
+dependencies {
+    implementation(libs.tgbotapi)
+    implementation(libs.ktor.http)
+    implementation(libs.ktor.server)
+    implementation(project(":common"))
+    implementation(project(":chat:api"))
+}

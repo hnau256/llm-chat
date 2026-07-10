@@ -15,7 +15,9 @@ dependencies {
     implementation(libs.sqlite.jdbc)
     implementation(libs.flyway.core)
     implementation(hnau.kotlinx.serialization.json)
+    implementation(project(":common"))
     implementation(project(":chat:api"))
+    implementation(project(":chat:telegram"))
 }
 
 application {

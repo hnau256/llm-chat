@@ -1,4 +1,4 @@
-package org.hnau.llmchat.app.telegram
+package org.hnau.llmchat.chat.telegram
 
 import co.touchlab.kermit.Logger
 import dev.inmo.tgbotapi.bot.ktor.telegramBot
@@ -11,11 +11,11 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.awaitCancellation
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.chat.api.ChatProcessor
-import org.hnau.llmchat.app.telegram.utils.toTelegramBotConfig
+import org.hnau.llmchat.chat.telegram.utils.toTelegramBotConfig
 
 private val logger = Logger.withTag("LaunchTelegramChat")
 
-internal suspend fun <C> launchTelegramChat(
+suspend fun <C> launchTelegramChat(
     token: String,
     webhook: TelegramWebhookConfig?,
     chatProcessor: ChatProcessor<C>,

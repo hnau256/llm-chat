@@ -1,4 +1,6 @@
-package org.hnau.llmchat.app.dto
+package org.hnau.llmchat.common
+
+import kotlin.jvm.JvmInline
 
 @JvmInline
 value class Port private constructor(

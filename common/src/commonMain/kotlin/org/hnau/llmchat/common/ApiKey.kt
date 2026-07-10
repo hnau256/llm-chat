@@ -1,6 +1,7 @@
-package org.hnau.llmchat.app.dto
+package org.hnau.llmchat.common
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
