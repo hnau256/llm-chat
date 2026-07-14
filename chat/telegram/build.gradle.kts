@@ -1,4 +1,5 @@
 plugins {
+    id(hnau.plugins.ksp.get().pluginId)
     id(hnau.plugins.hnau.jvm.get().pluginId)
 }
 
