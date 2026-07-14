@@ -18,7 +18,14 @@ private value class Token(
         content = content + char,
     )
 
-    enum class Kind { WordsSeparator, ParagraphsSeparator, Word, Html }
+    enum class Kind(
+        val weight: Int,
+    ) {
+        ParagraphsSeparator(weight = 0),
+        WordsSeparator(weight = 1),
+        Word(weight = 2),
+        Html(weight = 3),
+    }
 
     val kind: Kind
         get() = when {
@@ -35,7 +42,9 @@ private value class Token(
         }
 }
 
-fun String.mdToTGHtmlMessages(): List<String> {
+fun String.mdToTGHtmlMessages(
+    maxMessageLength: Int,
+): List<String> {
     mdToTGHtml()
         .flatMap { part ->
             part
@@ -49,6 +58,7 @@ fun String.mdToTGHtmlMessages(): List<String> {
                     },
                 )
         }
+    TODO()
 }
 
 private fun String.tokenizeText(): List<Token> = this
