@@ -4,6 +4,7 @@ import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import arrow.core.toNonEmptyListOrNull
 import org.hnau.commons.gen.fold.annotations.Fold
+import org.hnau.commons.kotlin.foldNullable
 
 @Fold
 sealed interface TextBlock {
@@ -13,10 +14,11 @@ sealed interface TextBlock {
     ) : TextBlock
 
     data class Blocks(
-        val items: NonEmptyList<Item>,
+        val first: TextBlock,
+        val next: List<Next>,
     ) : TextBlock {
 
-        data class Item(
+        data class Next(
             val prefix: String,
             val content: TextBlock,
         )
@@ -24,15 +26,21 @@ sealed interface TextBlock {
 }
 
 private val TextBlock.length: Int
-    get() = fold(
-        ifText = String::length,
-        ifBlocks = NonEmptyList<TextBlock.Blocks.Item>::length,
+    get() = foldRaw(
+        ifBlocks = TextBlock.Blocks::length,
+        ifText = TextBlock.Text::length,
     )
 
-private val NonEmptyList<TextBlock.Blocks.Item>.length: Int
-    get() = sumOf { it.length }
+private val TextBlock.Blocks.length: Int
+    get() = first.length + next.length
 
-private val TextBlock.Blocks.Item.length: Int
+private val TextBlock.Text.length: Int
+    get() = text.length
+
+private val List<TextBlock.Blocks.Next>.length: Int
+    get() = sumOf(TextBlock.Blocks.Next::length)
+
+private val TextBlock.Blocks.Next.length: Int
     get() = prefix.length + content.length
 
 fun TextBlock.chunk(
@@ -46,8 +54,10 @@ fun TextBlock.chunk(
 
 private fun TextBlock.limit(
     length: Int,
-): Pair<TextBlock, TextBlock?> = fold(
-    ifText = { text ->
+): Pair<TextBlock, TextBlock?> = foldRaw(
+    ifText = { textBlock ->
+
+        val text = textBlock.text
 
         val first = text
             .take(length)
@@ -63,36 +73,48 @@ private fun TextBlock.limit(
     ifBlocks = { items -> items.limit(length) },
 )
 
-private fun NonEmptyList<TextBlock.Blocks.Item>.limit(
+private operator fun TextBlock.Blocks.plus(
+    item: TextBlock.Blocks.Next,
+): TextBlock.Blocks = copy(
+    next = next + item,
+)
+
+private fun TextBlock.Blocks.limit(
     length: Int,
 ): Pair<TextBlock, TextBlock?> {
 
-    if (head.length >= length) {
-        val (first, headNext) = head.content.limit(length)
+    if (first.length >= length) {
+        val (first, headNextOrNull) = first.limit(length)
 
-        val second = buildList {
-
-            headNext
-                ?.let {
-                    TextBlock.Blocks.Item(
-                        prefix = "",
-                        content = it,
-                    )
-                }
-                ?.let(::add)
-
-            addAll(tail)
-        }
-            .toNonEmptyListOrNull()
-            ?.let(TextBlock::Blocks)
+        val second = headNextOrNull.foldNullable(
+            ifNull = {
+                next
+                    .toNonEmptyListOrNull()
+                    ?.let { nonEmptyTail ->
+                        TextBlock.Blocks(
+                            first = nonEmptyTail.head.content,
+                            next = nonEmptyTail.tail,
+                        )
+                    }
+            },
+            ifNotNull = { headNext ->
+                TextBlock.Blocks(
+                    first = headNext,
+                    next = next,
+                )
+            }
+        )
 
         return first to second
     }
 
-    val (first, next) = tail
+    return next
         .fold(
-            initial = Pair<_, NonEmptyList<TextBlock.Blocks.Item>?>(
-                first = nonEmptyListOf(head),
+            initial = Pair<_, TextBlock.Blocks?>(
+                first = TextBlock.Blocks(
+                    first = first,
+                    next = emptyList(),
+                ),
                 second = null,
             )
         ) { (head, tail), item ->
@@ -101,11 +123,12 @@ private fun NonEmptyList<TextBlock.Blocks.Item>.limit(
             }
             val newHead = head + item
             if (newHead.length > length) {
-                return@fold head to nonEmptyListOf(item)
+                return@fold head to TextBlock.Blocks(
+                    first = item.content,
+                    next = emptyList(),
+                )
             }
 
             newHead to null
         }
-
-    return TextBlock.Blocks(first) to next?.let(TextBlock::Blocks)
 }
