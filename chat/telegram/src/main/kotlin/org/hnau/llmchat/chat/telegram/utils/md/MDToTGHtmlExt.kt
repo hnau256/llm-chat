@@ -30,7 +30,7 @@ import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 
-internal data class TGHtmlPart(
+data class TGHtmlPart(
     val string: String,
     val kind: Kind,
 ) {

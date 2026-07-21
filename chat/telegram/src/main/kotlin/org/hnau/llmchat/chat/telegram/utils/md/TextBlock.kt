@@ -3,26 +3,41 @@ package org.hnau.llmchat.chat.telegram.utils.md
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
 import arrow.core.toNonEmptyListOrNull
+import arrow.optics.optics
 import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.foldNullable
 
+@optics
 @Fold
 sealed interface TextBlock {
 
+    @optics
     data class Text(
         val text: String,
-    ) : TextBlock
+    ) : TextBlock {
 
+        companion object
+    }
+
+    @optics
     data class Blocks(
         val first: TextBlock,
         val next: List<Next>,
     ) : TextBlock {
 
+        @optics
         data class Next(
             val prefix: String,
             val content: TextBlock,
-        )
+        ) {
+
+            companion object
+        }
+
+        companion object
     }
+
+    companion object
 }
 
 private val TextBlock.length: Int
