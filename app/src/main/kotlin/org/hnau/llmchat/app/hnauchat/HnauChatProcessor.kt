@@ -88,13 +88,26 @@ class HnauChatProcessor(
         val response = runCatching {
             client.execute(
                 prompt = Prompt(
-                    messages = listOf(
+                    messages = listOfNotNull(
+                        Message.System(
+                            content = "Ты чат-помошник работающий через телеграм, поэтому отвечай коротко с использованием markdown но только тех методов форматирования, которые поддерживаются телеграмом",
+                            metaInfo = RequestMetaInfo.Empty,
+                        ),
+                        context
+                            .settings
+                            .settings
+                            .basePrompt
+                            .takeIf(String::isNotEmpty)
+                            ?.let { basePrompt ->
+                                Message.User(
+                                    content = basePrompt,
+                                    metaInfo = RequestMetaInfo.Empty,
+                                )
+                            },
                         Message.User(
                             content = message,
-                            metaInfo = RequestMetaInfo(
-                                timestamp = Clock.System.now(),
-                            )
-                        )
+                            metaInfo = RequestMetaInfo.create { Clock.System.now() },
+                        ),
                     ),
                     id = message.hashCode().toString(),
                 ),
