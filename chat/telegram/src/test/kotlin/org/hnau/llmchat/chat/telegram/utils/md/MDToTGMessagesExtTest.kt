@@ -227,9 +227,19 @@ class MDToTGMessagesExtTest {
                 comment = "bullet list",
             ),
             Case(
+                input = "* a\n  * b",
+                output = nonEmptyListOf("• a\n  • b"),
+                comment = "nested bullet list",
+            ),
+            Case(
                 input = "1. a\n2. b",
                 output = nonEmptyListOf("1. a\n2. b"),
                 comment = "ordered list",
+            ),
+            Case(
+                input = "1. a\n    1. b",
+                output = nonEmptyListOf("1. a\n  1. b"),
+                comment = "nested ordered list",
             ),
             Case(
                 input = "3. a",

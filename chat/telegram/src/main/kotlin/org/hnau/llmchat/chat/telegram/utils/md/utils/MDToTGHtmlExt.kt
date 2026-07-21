@@ -63,6 +63,7 @@ private class HtmlBuilder : Visitor {
         get() = _result
 
     private var htmlDepth: Int = 0
+    private var listDepth: Int = 0
 
     private fun append(
         string: String,
@@ -146,7 +147,12 @@ private class HtmlBuilder : Visitor {
     }
 
     override fun visit(bulletList: BulletList) {
+        if (bulletList.parent is ListItem) {
+            append("\n")
+        }
+        listDepth++
         visitChildren(bulletList)
+        listDepth--
     }
 
     override fun visit(code: Code) {
@@ -221,8 +227,9 @@ private class HtmlBuilder : Visitor {
     }
 
     override fun visit(listItem: ListItem) {
+        val indent = "  ".repeat(listDepth - 1)
         when (val parent = listItem.parent) {
-            is BulletList -> append("• ")
+            is BulletList -> append("$indent• ")
             is OrderedList -> {
 
                 val index = parent
@@ -230,16 +237,21 @@ private class HtmlBuilder : Visitor {
                     .indexOfFirst { it === listItem }
                     .plus(parent.markerStartNumber ?: 1)
 
-                append("$index${parent.markerDelimiter ?: "."} ")
+                append("$indent$index${parent.markerDelimiter ?: "."} ")
             }
-            else -> append("  ")
+            else -> append("$indent  ")
         }
         visitChildren(listItem)
         append("\n")
     }
 
     override fun visit(orderedList: OrderedList) {
+        if (orderedList.parent is ListItem) {
+            append("\n")
+        }
+        listDepth++
         visitChildren(orderedList)
+        listDepth--
     }
 
     override fun visit(paragraph: Paragraph) {
