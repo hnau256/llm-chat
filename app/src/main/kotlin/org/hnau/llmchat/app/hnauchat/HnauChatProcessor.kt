@@ -4,10 +4,12 @@ import ai.koog.prompt.Prompt
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
+import ai.koog.prompt.message.ResponseMetaInfo
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
+import org.hnau.llmchat.app.hnauchat.messages.MessageRole
 import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
@@ -107,6 +109,7 @@ class HnauChatProcessor(
             MessageRecord(
                 id = userMsgId,
                 userId = context.chatId,
+                role = MessageRole.USER,
                 transportIds = listOf(incomingMessageId),
                 text = message,
                 timestamp = Clock.System.now(),
@@ -114,6 +117,10 @@ class HnauChatProcessor(
                 summary = null,
             )
         )
+
+        val historyMessages = parentDbId?.let { id ->
+            context.messagesRepo.findById(id)
+        }
 
         val (client, model) = context
             .llmConnectionManager
@@ -147,6 +154,18 @@ class HnauChatProcessor(
                                     metaInfo = RequestMetaInfo.Empty,
                                 )
                             },
+                        historyMessages?.let { historyRecord ->
+                            when (historyRecord.role) {
+                                MessageRole.USER -> Message.User(
+                                    content = historyRecord.text,
+                                    metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                )
+                                MessageRole.ASSISTANT -> Message.Assistant(
+                                    content = historyRecord.text,
+                                    metaInfo = ResponseMetaInfo(historyRecord.timestamp),
+                                )
+                            }
+                        },
                         Message.User(
                             content = message,
                             metaInfo = RequestMetaInfo.create { Clock.System.now() },
@@ -164,6 +183,7 @@ class HnauChatProcessor(
                     MessageRecord(
                         id = MessageId(UUID.randomUUID().toString()),
                         userId = context.chatId,
+                        role = MessageRole.ASSISTANT,
                         transportIds = errorTransportIds,
                         text = errorText,
                         timestamp = Clock.System.now(),
@@ -185,6 +205,7 @@ class HnauChatProcessor(
             MessageRecord(
                 id = MessageId(UUID.randomUUID().toString()),
                 userId = context.chatId,
+                role = MessageRole.ASSISTANT,
                 transportIds = transportIds,
                 text = response,
                 timestamp = Clock.System.now(),
