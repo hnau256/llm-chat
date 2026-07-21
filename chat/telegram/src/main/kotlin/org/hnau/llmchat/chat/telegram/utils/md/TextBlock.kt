@@ -58,7 +58,7 @@ private val List<TextBlock.Blocks.Next>.length: Int
 private val TextBlock.Blocks.Next.length: Int
     get() = prefix.length + content.length
 
-fun TextBlock.chunk(
+internal fun TextBlock.chunk(
     length: Int,
 ): NonEmptyList<TextBlock> = limit(length).let { (first, next) ->
     nonEmptyListOf(

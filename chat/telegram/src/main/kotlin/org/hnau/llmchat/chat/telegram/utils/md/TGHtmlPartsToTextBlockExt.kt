@@ -23,7 +23,14 @@ internal fun List<TGHtmlPart>.toTextBlock(): TextBlock? = this
                                 ifFalse = { (acc + buffer) to char.toString() },
                             )
                         }
-                        .first
+                        .let { (acc, buffer) ->
+                            buffer
+                                .takeIf(String::isNotEmpty)
+                                .foldNullable(
+                                    ifNull = { acc },
+                                    ifNotNull = { acc + buffer },
+                                )
+                        }
                 }
             )
     }
@@ -52,11 +59,11 @@ internal fun List<TGHtmlPart>.toTextBlock(): TextBlock? = this
             next = next.tail,
         )
     }
-    ?.splitBySeparator { it.any(Char::isLineBreak) }
-    ?.splitBySeparator { it.count(Char::isLineBreak) > 1 }
+    ?.splitBySeparator { separator -> separator.any(Char::isLineBreak) }
+    ?.splitBySeparator { separator -> separator.count(Char::isLineBreak) > 1 }
 
 private val Char.isLineBreak: Boolean
-    get() = this == '\n' || this == '\r'
+    get() = this == '\n'
 
 private fun TextBlock.Blocks.splitBySeparator(
     splitBy: (separator: String) -> Boolean,
