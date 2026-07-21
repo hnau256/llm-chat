@@ -1,4 +1,4 @@
-package org.hnau.llmchat.chat.telegram.utils.md
+package org.hnau.llmchat.chat.telegram.utils.md.utils
 
 import arrow.core.NonEmptyList
 import arrow.core.nonEmptyListOf
@@ -6,6 +6,7 @@ import arrow.core.toNonEmptyListOrNull
 import arrow.optics.optics
 import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.llmchat.chat.telegram.utils.md.foldRaw
 
 @optics
 @Fold

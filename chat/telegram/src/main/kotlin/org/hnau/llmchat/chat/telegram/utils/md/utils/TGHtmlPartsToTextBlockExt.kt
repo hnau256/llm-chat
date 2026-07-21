@@ -1,12 +1,17 @@
-package org.hnau.llmchat.chat.telegram.utils.md
+package org.hnau.llmchat.chat.telegram.utils.md.utils
 
 import arrow.core.toNonEmptyListOrNull
 import arrow.optics.copy
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.it
+import org.hnau.llmchat.chat.telegram.utils.md.content
+import org.hnau.llmchat.chat.telegram.utils.md.first
+import org.hnau.llmchat.chat.telegram.utils.md.fold
+import org.hnau.llmchat.chat.telegram.utils.md.foldRaw
+import org.hnau.llmchat.chat.telegram.utils.md.next
 
-internal fun List<TGHtmlPart>.toTextBlock(): TextBlock? = this
+fun List<TGHtmlPart>.toTextBlock(): TextBlock? = this
     .flatMap { part ->
         part
             .kind

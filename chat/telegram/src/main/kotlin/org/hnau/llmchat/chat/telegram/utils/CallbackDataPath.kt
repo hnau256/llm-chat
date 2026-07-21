@@ -8,7 +8,6 @@ import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.plus
 import org.hnau.commons.kotlin.mapper.stringToStringsBySeparator
 import org.hnau.commons.kotlin.mapper.toListMapper
-import kotlin.jvm.JvmInline
 
 data class CallbackDataPath(
     val entries: NonEmptyList<Entry>,

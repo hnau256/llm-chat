@@ -1,4 +1,4 @@
-package org.hnau.llmchat.chat.telegram.utils.md
+package org.hnau.llmchat.chat.telegram.utils.md.utils
 
 import org.commonmark.node.BlockQuote
 import org.commonmark.node.BulletList
@@ -30,7 +30,7 @@ import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 
-internal data class TGHtmlPart(
+data class TGHtmlPart(
     val string: String,
     val kind: Kind,
 ) {
@@ -39,7 +39,7 @@ internal data class TGHtmlPart(
     enum class Kind { Text, Html }
 }
 
-internal fun String.mdToTGHtml(): List<TGHtmlPart> = HtmlBuilder()
+fun String.mdToTGHtml(): List<TGHtmlPart> = HtmlBuilder()
     .apply {
         Parser
             .builder()
