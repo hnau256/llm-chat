@@ -72,6 +72,7 @@ class HnauChatProcessor(
 
     override suspend fun Chat.handleMessage(
         context: Context,
+        transportPrompt: String,
         replayFor: MessageId?,
         message: String
     ) {
@@ -90,7 +91,11 @@ class HnauChatProcessor(
                 prompt = Prompt(
                     messages = listOfNotNull(
                         Message.System(
-                            content = "Ты чат-помошник работающий через телеграм, поэтому отвечай коротко с использованием markdown но только тех методов форматирования, которые поддерживаются телеграмом",
+                            content = "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message.",
+                            metaInfo = RequestMetaInfo.Empty,
+                        ),
+                        Message.System(
+                            content = transportPrompt,
                             metaInfo = RequestMetaInfo.Empty,
                         ),
                         context

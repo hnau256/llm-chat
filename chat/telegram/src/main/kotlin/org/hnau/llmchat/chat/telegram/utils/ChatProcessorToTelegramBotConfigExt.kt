@@ -92,6 +92,7 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
 
         chat.handleMessage(
             context = context.context,
+            transportPrompt = TELEGRAM_TRANSPORT_PROMPT,
             replayFor = message.replyTo?.messageId?.toMessageId(),
             message = text,
         )
@@ -109,8 +110,9 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
 
         answerCallbackQuery(dataCallbackQuery)
     }
-
 }
+
+private const val TELEGRAM_TRANSPORT_PROMPT = "You are replying via Telegram. Format responses using Markdown with the following supported features only: **bold**, *italic*, `inline code`, ```fenced code blocks``` with language specified, [links](url), > blockquotes, bullet and numbered lists, # headings, --- horizontal rules. Do not use strikethrough, underlined text, raw HTML tags, or tables — they are not supported. Keep each message under 4000 characters."
 
 private suspend fun <C> tryHandleText(
     context: ExtendedContext<C>,
