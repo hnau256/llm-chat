@@ -232,6 +232,7 @@ private class HtmlBuilder : Visitor {
 
                 append("$index${parent.markerDelimiter ?: "."} ")
             }
+            else -> append("  ")
         }
         visitChildren(listItem)
         append("\n")
