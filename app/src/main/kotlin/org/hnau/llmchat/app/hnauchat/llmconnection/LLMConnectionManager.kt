@@ -13,8 +13,6 @@ import org.hnau.commons.kotlin.KeyValue
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
-import org.hnau.llmchat.chat.api.ButtonIcon
-import org.hnau.llmchat.common.ApiKey
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.settings.update
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
@@ -25,6 +23,8 @@ import org.hnau.llmchat.app.llm.model.createBaseConfig
 import org.hnau.llmchat.app.llm.model.foldRaw
 import org.hnau.llmchat.app.llm.model.url
 import org.hnau.llmchat.app.utils.tryParse
+import org.hnau.llmchat.chat.api.ButtonIcon
+import org.hnau.llmchat.common.ApiKey
 
 class LLMConnectionManager(
     private val dependencies: Dependencies,

@@ -1,10 +1,10 @@
 package org.hnau.llmchat.app.hnauchat.page
 
 import org.hnau.commons.kotlin.foldNullable
+import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.chat.api.ButtonIcon
 import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.chat.api.createButtonTitle
-import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 
 suspend fun generateSettingsPage(
     context: HnauChatProcessor.Context,

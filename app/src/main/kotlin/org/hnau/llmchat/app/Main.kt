@@ -14,7 +14,6 @@ import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.db.DBAdapter
 import org.hnau.llmchat.app.db.sqlite
-import org.hnau.llmchat.common.Port
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import org.hnau.llmchat.app.hnauchat.impl
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
@@ -24,6 +23,7 @@ import org.hnau.llmchat.app.utils.getRequiredEnv
 import org.hnau.llmchat.app.utils.parser
 import org.hnau.llmchat.chat.telegram.TelegramWebhookConfig
 import org.hnau.llmchat.chat.telegram.launchTelegramChat
+import org.hnau.llmchat.common.Port
 
 private val logger = Logger.withTag("Main")
 

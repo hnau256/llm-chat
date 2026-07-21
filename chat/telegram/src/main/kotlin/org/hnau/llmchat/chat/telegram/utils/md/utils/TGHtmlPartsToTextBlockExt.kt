@@ -5,11 +5,6 @@ import arrow.optics.copy
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.it
-import org.hnau.llmchat.chat.telegram.utils.md.utils.content
-import org.hnau.llmchat.chat.telegram.utils.md.utils.first
-import org.hnau.llmchat.chat.telegram.utils.md.utils.fold
-import org.hnau.llmchat.chat.telegram.utils.md.utils.foldRaw
-import org.hnau.llmchat.chat.telegram.utils.md.utils.next
 
 fun List<TGHtmlPart>.toTextBlock(): TextBlock? = this
     .flatMap { part ->

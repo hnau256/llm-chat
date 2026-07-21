@@ -1,7 +1,5 @@
 package org.hnau.llmchat.chat.telegram.utils.md.utils
 
-import org.hnau.llmchat.chat.telegram.utils.md.utils.foldRaw
-
 
 fun TextBlock.toText(): String = foldRaw(
     ifText = TextBlock.Text::text,

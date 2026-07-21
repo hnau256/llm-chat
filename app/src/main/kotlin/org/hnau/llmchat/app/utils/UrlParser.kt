@@ -1,11 +1,8 @@
 package org.hnau.llmchat.app.utils
 
 import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
 import io.ktor.http.URLBuilder
 import io.ktor.http.Url
-import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
 import org.hnau.commons.kotlin.toEither
 

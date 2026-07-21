@@ -1,8 +1,8 @@
 package org.hnau.llmchat.app.hnauchat.messages
 
+import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.chat.api.ChatId
 import org.hnau.llmchat.chat.api.MessageId
-import org.hnau.llmchat.app.db.DBAccessor
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlin.time.Instant

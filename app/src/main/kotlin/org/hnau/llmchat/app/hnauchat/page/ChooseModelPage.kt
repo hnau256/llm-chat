@@ -1,12 +1,12 @@
 package org.hnau.llmchat.app.hnauchat.page
 
 import org.hnau.commons.kotlin.ifTrue
+import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
+import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.chat.api.ButtonIcon
 import org.hnau.llmchat.chat.api.ButtonResult
 import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.chat.api.createButtonTitle
-import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
-import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 
 suspend fun generateChooseModelPage(
     context: HnauChatProcessor.Context,
