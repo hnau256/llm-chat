@@ -358,13 +358,13 @@ class MDToTGMessagesExtTest {
                 input = "a b c",
                 output = nonEmptyListOf("a b", "c"),
                 messageLengthLimit = 3,
-                comment = "space separated with limit equals chunk",
+                comment = "space separated with limit 3",
             ),
             Case(
                 input = "ab cd ef",
                 output = nonEmptyListOf("ab", "cd", "ef"),
                 messageLengthLimit = 2,
-                comment = "two-char words split on word boundary",
+                comment = "two-char words each message no leading ws",
             ),
             Case(
                 input = "abc def",
@@ -382,7 +382,19 @@ class MDToTGMessagesExtTest {
                 input = "a\nb\nc",
                 output = nonEmptyListOf("a", "b", "c"),
                 messageLengthLimit = 2,
-                comment = "newline separated words with limit 2",
+                comment = "newline separators dropped at chunk boundary",
+            ),
+            Case(
+                input = "a b c d",
+                output = nonEmptyListOf("a b", "c d"),
+                messageLengthLimit = 3,
+                comment = "four words pairs of two into chunks",
+            ),
+            Case(
+                input = "a b c d e",
+                output = nonEmptyListOf("a b", "c d", "e"),
+                messageLengthLimit = 3,
+                comment = "five words three chunks",
             ),
         )
 
