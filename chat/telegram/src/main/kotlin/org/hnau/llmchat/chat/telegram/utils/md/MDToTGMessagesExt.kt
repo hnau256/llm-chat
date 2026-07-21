@@ -1,7 +1,6 @@
 package org.hnau.llmchat.chat.telegram.utils.md
 
 import arrow.core.NonEmptyList
-import org.hnau.llmchat.chat.telegram.utils.md.utils.TextBlock
 import org.hnau.llmchat.chat.telegram.utils.md.utils.chunk
 import org.hnau.llmchat.chat.telegram.utils.md.utils.mdToTGHtml
 import org.hnau.llmchat.chat.telegram.utils.md.utils.toText
@@ -15,4 +14,4 @@ fun String.mdToTGMessages(
     .mdToTGHtml()
     .toTextBlock()
     ?.chunk(maxLength)
-    ?.map(TextBlock::toText)
+    ?.map { it.toText() }

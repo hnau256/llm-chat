@@ -6,7 +6,7 @@ import arrow.core.toNonEmptyListOrNull
 import arrow.optics.optics
 import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.foldNullable
-import org.hnau.llmchat.chat.telegram.utils.md.foldRaw
+import org.hnau.llmchat.chat.telegram.utils.md.utils.foldRaw
 
 @optics
 @Fold
