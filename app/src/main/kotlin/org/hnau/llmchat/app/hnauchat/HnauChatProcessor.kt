@@ -5,12 +5,6 @@ import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import org.hnau.commons.gen.pipe.annotations.Pipe
-import org.hnau.llmchat.chat.api.Chat
-import org.hnau.llmchat.chat.api.ChatId
-import org.hnau.llmchat.chat.api.ChatPage
-import org.hnau.llmchat.chat.api.ChatProcessor
-import org.hnau.llmchat.chat.api.ChatRootPage
-import org.hnau.llmchat.chat.api.MessageId
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
@@ -18,6 +12,12 @@ import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
+import org.hnau.llmchat.chat.api.Chat
+import org.hnau.llmchat.chat.api.ChatId
+import org.hnau.llmchat.chat.api.ChatPage
+import org.hnau.llmchat.chat.api.ChatProcessor
+import org.hnau.llmchat.chat.api.ChatRootPage
+import org.hnau.llmchat.chat.api.MessageId
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -87,25 +87,29 @@ class HnauChatProcessor(
         message: String
     ) {
 
-        val parentDbId = replayFor?.let { replayId ->
+        val parentDbId = if (replayFor != null) {
             context.messagesRepo.findByTransportId(
-                userId = context.chatId.id,
-                transportId = replayId.id,
+                userId = context.chatId,
+                transportId = replayFor,
+            ) ?: run {
+                sendMessage("Unable to find the message you replied to")
+                return
+            }
+        } else {
+            context.messagesRepo.findLastMessageId(
+                userId = context.chatId,
             )
-        } ?: context.messagesRepo.findLastMessageId(
-            userId = context.chatId.id,
-        )
+        }
 
-        val userMsgId = UUID.randomUUID().toString()
-        val now = Clock.System.now().toEpochMilliseconds()
+        val userMsgId = MessageId(UUID.randomUUID().toString())
 
         context.messagesRepo.save(
             MessageRecord(
                 id = userMsgId,
-                userId = context.chatId.id,
-                transportIds = listOf(incomingMessageId.id),
+                userId = context.chatId,
+                transportIds = listOf(incomingMessageId),
                 text = message,
-                timestamp = now,
+                timestamp = Clock.System.now(),
                 parentMessageId = parentDbId,
                 summary = null,
             )
@@ -154,7 +158,19 @@ class HnauChatProcessor(
             )
         }
             .getOrElse { error ->
-                sendMessage("Error while requesting LLM: ${error.message}")
+                val errorText = "Error while requesting LLM: ${error.message}"
+                val errorTransportIds = sendMessage(errorText)
+                context.messagesRepo.save(
+                    MessageRecord(
+                        id = MessageId(UUID.randomUUID().toString()),
+                        userId = context.chatId,
+                        transportIds = errorTransportIds,
+                        text = errorText,
+                        timestamp = Clock.System.now(),
+                        parentMessageId = userMsgId,
+                        summary = null,
+                    )
+                )
                 return
             }
             .parts
@@ -167,11 +183,11 @@ class HnauChatProcessor(
         val transportIds = sendMessage(response)
         context.messagesRepo.save(
             MessageRecord(
-                id = UUID.randomUUID().toString(),
-                userId = context.chatId.id,
-                transportIds = transportIds.map { it.id },
+                id = MessageId(UUID.randomUUID().toString()),
+                userId = context.chatId,
+                transportIds = transportIds,
                 text = response,
-                timestamp = Clock.System.now().toEpochMilliseconds(),
+                timestamp = Clock.System.now(),
                 parentMessageId = userMsgId,
                 summary = null,
             )
