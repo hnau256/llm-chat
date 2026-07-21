@@ -94,6 +94,7 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
             context = context.context,
             transportPrompt = TELEGRAM_TRANSPORT_PROMPT,
             replayFor = message.replyTo?.messageId?.toMessageId(),
+            incomingMessageId = message.messageId.toMessageId(),
             message = text,
         )
     }

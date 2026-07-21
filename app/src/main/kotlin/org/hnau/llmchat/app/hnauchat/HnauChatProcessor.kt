@@ -13,9 +13,12 @@ import org.hnau.llmchat.chat.api.ChatRootPage
 import org.hnau.llmchat.chat.api.MessageId
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
+import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
+import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
+import java.util.UUID
 import kotlin.time.Clock
 
 class HnauChatProcessor(
@@ -37,6 +40,8 @@ class HnauChatProcessor(
     }
 
     data class Context(
+        val chatId: ChatId,
+        val messagesRepo: MessagesRepository,
         val settings: UserSettingsRepository,
         val llmConnectionManager: LLMConnectionManager,
     )
@@ -61,6 +66,10 @@ class HnauChatProcessor(
         )
 
         return Context(
+            chatId = chatId,
+            messagesRepo = MessagesRepository.create(
+                db = dependencies.db,
+            ),
             settings = settings,
             llmConnectionManager = LLMConnectionManager(
                 dependencies = dependencies.llmConnectionManager(
@@ -74,8 +83,33 @@ class HnauChatProcessor(
         context: Context,
         transportPrompt: String,
         replayFor: MessageId?,
+        incomingMessageId: MessageId,
         message: String
     ) {
+
+        val parentDbId = replayFor?.let { replayId ->
+            context.messagesRepo.findByTransportId(
+                userId = context.chatId.id,
+                transportId = replayId.id,
+            )
+        } ?: context.messagesRepo.findLastMessageId(
+            userId = context.chatId.id,
+        )
+
+        val userMsgId = UUID.randomUUID().toString()
+        val now = Clock.System.now().toEpochMilliseconds()
+
+        context.messagesRepo.save(
+            MessageRecord(
+                id = userMsgId,
+                userId = context.chatId.id,
+                transportIds = listOf(incomingMessageId.id),
+                text = message,
+                timestamp = now,
+                parentMessageId = parentDbId,
+                summary = null,
+            )
+        )
 
         val (client, model) = context
             .llmConnectionManager
@@ -130,6 +164,17 @@ class HnauChatProcessor(
                 transform = MessagePart.Text::text,
             )
 
-        sendMessage(response)
+        val transportIds = sendMessage(response)
+        context.messagesRepo.save(
+            MessageRecord(
+                id = UUID.randomUUID().toString(),
+                userId = context.chatId.id,
+                transportIds = transportIds.map { it.id },
+                text = response,
+                timestamp = Clock.System.now().toEpochMilliseconds(),
+                parentMessageId = userMsgId,
+                summary = null,
+            )
+        )
     }
 }
