@@ -129,16 +129,18 @@ class HnauChatProcessor(
             }
         )
 
+        val userMessage = MessageRecord(
+            role = MessageRole.User,
+            transportIds = listOf(incomingMessageId),
+            text = message,
+            timestamp = Clock.System.now(),
+            parentMessageId = parentMessageId,
+            summary = null,
+        )
+
         context.messagesRepository.save(
             id = chatMsgId,
-            record = MessageRecord(
-                role = MessageRole.User,
-                transportIds = listOf(incomingMessageId),
-                text = message,
-                timestamp = Clock.System.now(),
-                parentMessageId = parentMessageId,
-                summary = null,
-            )
+            record = userMessage,
         )
 
         val (client, model) = context
@@ -158,7 +160,7 @@ class HnauChatProcessor(
                     messages = buildLLMChatMessages(
                         transportPrompt = transportPrompt,
                         context = context,
-                        userMessage = message,
+                        userMessage = userMessage,
                         parentMessageId = parentMessageId,
                     ),
                     id = message.hashCode().toString(),

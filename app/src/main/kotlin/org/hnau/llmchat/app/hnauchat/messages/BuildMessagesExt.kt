@@ -4,7 +4,6 @@ import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
-import kotlin.time.Clock
 
 private const val SYSTEM_PROMPT =
     "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message."
@@ -13,7 +12,7 @@ internal suspend fun buildLLMChatMessages(
     transportPrompt: String,
     context: HnauChatProcessor.Context,
     parentMessageId: StorageMessageId?,
-    userMessage: String,
+    userMessage: MessageRecord,
 ): List<Message> = buildList {
 
     add(
@@ -36,30 +35,29 @@ internal suspend fun buildLLMChatMessages(
     addAll(
         parentMessageId
             ?.let { id -> context.messagesRepository.getHistory(id) }
-            .orEmpty().map { historyRecord ->
-                historyRecord
-                    .role
-                    .fold(
-                        ifUser = {
-                            Message.User(
-                                content = historyRecord.text,
-                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                            )
-                        },
-                        ifAssistant = {
-                            Message.Assistant(
-                                content = historyRecord.text,
-                                metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                            )
-                        },
-                    )
+            .orEmpty()
+            .map { historyRecord ->
+                historyRecord.role.fold(
+                    ifUser = {
+                        Message.User(
+                            content = historyRecord.text,
+                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                        )
+                    },
+                    ifAssistant = {
+                        Message.Assistant(
+                            content = historyRecord.text,
+                            metaInfo = ResponseMetaInfo(historyRecord.timestamp),
+                        )
+                    },
+                )
             }
     )
 
     add(
         Message.User(
-            content = userMessage,
-            metaInfo = RequestMetaInfo.create { Clock.System.now() },
+            content = userMessage.text,
+            metaInfo = RequestMetaInfo(userMessage.timestamp),
         )
     )
 }
