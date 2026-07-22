@@ -6,7 +6,8 @@ import ai.koog.prompt.message.ResponseMetaInfo
 import org.hnau.llmchat.app.hnauchat.HnauChatProcessor
 import kotlin.time.Clock
 
-private const val SYSTEM_PROMPT = "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message."
+private const val SYSTEM_PROMPT =
+    "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message."
 
 internal suspend fun buildLLMChatMessages(
     transportPrompt: String,
@@ -49,12 +50,6 @@ internal suspend fun buildLLMChatMessages(
                             Message.Assistant(
                                 content = historyRecord.text,
                                 metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                            )
-                        },
-                        ifSystem = {
-                            Message.System(
-                                content = historyRecord.text,
-                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
                             )
                         },
                     )
