@@ -164,6 +164,11 @@ class HnauChatProcessor(
                                     content = historyRecord.text,
                                     metaInfo = ResponseMetaInfo(historyRecord.timestamp),
                                 )
+
+                                MessageRole.System -> Message.System(
+                                    content = historyRecord.text,
+                                    metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                )
                             }
                         },
                         Message.User(

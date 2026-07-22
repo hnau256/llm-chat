@@ -2,6 +2,7 @@ package org.hnau.llmchat.app.hnauchat.messages
 
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.KeyValue
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.nameToEnum
@@ -13,8 +14,9 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlin.time.Instant
 
+@Fold
 enum class MessageRole {
-    User, Assistant;
+    User, Assistant, System;
 
     companion object {
 
