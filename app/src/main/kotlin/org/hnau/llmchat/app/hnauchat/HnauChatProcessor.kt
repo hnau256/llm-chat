@@ -43,7 +43,7 @@ class HnauChatProcessor(
 
     data class Context(
         val chatId: ChatId,
-        val messagesRepo: MessagesRepository,
+        val messagesRepository: MessagesRepository,
         val settings: UserSettingsRepository,
         val llmConnectionManager: LLMConnectionManager,
     )
@@ -69,7 +69,7 @@ class HnauChatProcessor(
 
         return Context(
             chatId = chatId,
-            messagesRepo = MessagesRepository.create(
+            messagesRepository = MessagesRepository.create(
                 db = dependencies.db,
             ),
             settings = settings,
@@ -90,7 +90,7 @@ class HnauChatProcessor(
     ) {
 
         val parentDbId = if (replayFor != null) {
-            context.messagesRepo.findByTransportId(
+            context.messagesRepository.findByTransportId(
                 userId = context.chatId,
                 transportId = replayFor,
             ) ?: run {
@@ -98,14 +98,14 @@ class HnauChatProcessor(
                 return
             }
         } else {
-            context.messagesRepo.findLastMessageId(
+            context.messagesRepository.findLastMessageId(
                 userId = context.chatId,
             )
         }
 
         val userMsgId = MessageId(UUID.randomUUID().toString())
 
-        context.messagesRepo.save(
+        context.messagesRepository.save(
             MessageRecord(
                 id = userMsgId,
                 userId = context.chatId,
@@ -119,7 +119,7 @@ class HnauChatProcessor(
         )
 
         val historyMessages = parentDbId?.let { id ->
-            context.messagesRepo.findById(id)
+            context.messagesRepository.findById(id)
         }
 
         val (client, model) = context
@@ -179,7 +179,7 @@ class HnauChatProcessor(
             .getOrElse { error ->
                 val errorText = "Error while requesting LLM: ${error.message}"
                 val errorTransportIds = sendMessage(errorText)
-                context.messagesRepo.save(
+                context.messagesRepository.save(
                     MessageRecord(
                         id = MessageId(UUID.randomUUID().toString()),
                         userId = context.chatId,
@@ -201,7 +201,7 @@ class HnauChatProcessor(
             )
 
         val transportIds = sendMessage(response)
-        context.messagesRepo.save(
+        context.messagesRepository.save(
             MessageRecord(
                 id = MessageId(UUID.randomUUID().toString()),
                 userId = context.chatId,
