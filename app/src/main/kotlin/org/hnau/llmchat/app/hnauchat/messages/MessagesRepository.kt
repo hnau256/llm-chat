@@ -89,7 +89,7 @@ class MessagesRepository(
             }
     }
 
-    suspend fun findById(
+    suspend fun findByStorageId(
         id: StorageMessageId,
     ): MessageRecord? = db.withConnection { connection ->
         connection

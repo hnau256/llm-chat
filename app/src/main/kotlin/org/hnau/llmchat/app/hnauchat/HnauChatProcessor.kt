@@ -160,7 +160,7 @@ class HnauChatProcessor(
         )
 
         val historyMessages = parentMessageId?.let { id ->
-            context.messagesRepository.findById(id)
+            context.messagesRepository.findByStorageId(id)
         }
 
         val (client, model) = context
