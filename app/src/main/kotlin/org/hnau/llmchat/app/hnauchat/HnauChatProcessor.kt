@@ -149,12 +149,7 @@ class HnauChatProcessor(
         )
 
         val historyMessages: List<MessageRecord> = parentMessageId
-            ?.let { id ->
-                context
-                    .messagesRepository
-                    .getByStorageId(id)
-                    ?.let { listOf(it) }
-            }
+            ?.let { id -> context.messagesRepository.getHistory(id) }
             .orEmpty()
 
         val (client, model) = context

@@ -9,5 +9,5 @@ CREATE TABLE messages (
     summary TEXT DEFAULT null
 );
 
-CREATE INDEX idx_messages_user_timestamp ON messages(user_id, timestamp);
+CREATE INDEX idx_messages_chat_timestamp ON messages(chat_id, timestamp);
 CREATE INDEX idx_messages_parent_message_id ON messages(parent_message_id);

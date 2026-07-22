@@ -87,21 +87,32 @@ class MessagesRepository(
             }
     }
 
-    suspend fun getByStorageId(
-        id: StorageMessageId,
-    ): MessageRecord? = db.withConnection { connection ->
+    suspend fun getHistory(
+        startId: StorageMessageId,
+    ): List<MessageRecord> = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
+                    WITH RECURSIVE chain AS (
                         SELECT * FROM $TableName WHERE $IdColumn = ?
-                    """.trimIndent()
+                        UNION ALL
+                        SELECT m.* FROM $TableName m
+                        JOIN chain c ON m.$IdColumn = c.$ParentMessageIdColumn
+                    )
+                    SELECT * FROM chain ORDER BY $TimestampColumn ASC
+                """.trimIndent()
             )
-            .apply { setString(1, id.id) }
+            .apply { setString(1, startId.id) }
             .use { statement ->
+                val result = mutableListOf<MessageRecord>()
                 statement
                     .executeQuery()
-                    .takeIf(ResultSet::next)
-                    ?.let(::toMessageRecord)
+                    .use { rs ->
+                        while (rs.next()) {
+                            result.add(toMessageRecord(rs))
+                        }
+                    }
+                result
             }
     }
 
