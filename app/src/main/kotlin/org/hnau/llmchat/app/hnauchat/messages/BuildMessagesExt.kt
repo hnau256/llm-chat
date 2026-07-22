@@ -36,28 +36,24 @@ internal suspend fun buildLLMChatMessages(
         parentMessageId
             ?.let { id -> context.messagesRepository.getHistory(id) }
             .orEmpty()
-            .map { historyRecord ->
-                historyRecord.role.fold(
-                    ifUser = {
-                        Message.User(
-                            content = historyRecord.text,
-                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                        )
-                    },
-                    ifAssistant = {
-                        Message.Assistant(
-                            content = historyRecord.text,
-                            metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                        )
-                    },
-                )
-            }
+            .map(MessageRecord::koogMessage)
     )
 
-    add(
-        Message.User(
-            content = userMessage.text,
-            metaInfo = RequestMetaInfo(userMessage.timestamp),
-        )
-    )
+    add(userMessage.koogMessage)
 }
+
+private val MessageRecord.koogMessage: Message
+    get() = role.fold(
+        ifUser = {
+            Message.User(
+                content = text,
+                metaInfo = RequestMetaInfo(timestamp),
+            )
+        },
+        ifAssistant = {
+            Message.Assistant(
+                content = text,
+                metaInfo = ResponseMetaInfo(timestamp),
+            )
+        },
+    )
