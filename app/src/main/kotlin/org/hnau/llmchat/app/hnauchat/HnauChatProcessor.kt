@@ -109,7 +109,7 @@ class HnauChatProcessor(
             MessageRecord(
                 id = userMsgId,
                 userId = context.chatId,
-                role = MessageRole.USER,
+                role = MessageRole.User,
                 transportIds = listOf(incomingMessageId),
                 text = message,
                 timestamp = Clock.System.now(),
@@ -156,11 +156,11 @@ class HnauChatProcessor(
                             },
                         historyMessages?.let { historyRecord ->
                             when (historyRecord.role) {
-                                MessageRole.USER -> Message.User(
+                                MessageRole.User -> Message.User(
                                     content = historyRecord.text,
                                     metaInfo = RequestMetaInfo(historyRecord.timestamp),
                                 )
-                                MessageRole.ASSISTANT -> Message.Assistant(
+                                MessageRole.Assistant -> Message.Assistant(
                                     content = historyRecord.text,
                                     metaInfo = ResponseMetaInfo(historyRecord.timestamp),
                                 )
@@ -183,7 +183,7 @@ class HnauChatProcessor(
                     MessageRecord(
                         id = MessageId(UUID.randomUUID().toString()),
                         userId = context.chatId,
-                        role = MessageRole.ASSISTANT,
+                        role = MessageRole.Assistant,
                         transportIds = errorTransportIds,
                         text = errorText,
                         timestamp = Clock.System.now(),
@@ -205,7 +205,7 @@ class HnauChatProcessor(
             MessageRecord(
                 id = MessageId(UUID.randomUUID().toString()),
                 userId = context.chatId,
-                role = MessageRole.ASSISTANT,
+                role = MessageRole.Assistant,
                 transportIds = transportIds,
                 text = response,
                 timestamp = Clock.System.now(),

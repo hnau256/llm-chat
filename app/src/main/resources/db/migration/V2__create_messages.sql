@@ -5,8 +5,8 @@ CREATE TABLE messages (
     transport_ids TEXT NOT NULL DEFAULT '[]',
     text TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
-    parent_message_id TEXT,
-    summary TEXT
+    parent_message_id TEXT DEFAULT null,
+    summary TEXT DEFAULT null
 );
 
 CREATE INDEX idx_messages_user_timestamp ON messages(user_id, timestamp);
