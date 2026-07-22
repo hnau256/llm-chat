@@ -20,7 +20,6 @@ import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.chat.api.ChatProcessor
 import org.hnau.llmchat.chat.api.ChatRootPage
 import org.hnau.llmchat.chat.api.MessageId
-import java.util.UUID
 import kotlin.time.Clock
 
 class HnauChatProcessor(
@@ -103,7 +102,7 @@ class HnauChatProcessor(
             )
         }
 
-        val userMsgId = MessageId(UUID.randomUUID().toString())
+        val userMsgId = MessageId.new()
 
         context.messagesRepository.save(
             MessageRecord(
@@ -181,7 +180,7 @@ class HnauChatProcessor(
                 val errorTransportIds = sendMessage(errorText)
                 context.messagesRepository.save(
                     MessageRecord(
-                        id = MessageId(UUID.randomUUID().toString()),
+                        id = MessageId.new(),
                         userId = context.chatId,
                         role = MessageRole.Assistant,
                         transportIds = errorTransportIds,
@@ -203,7 +202,7 @@ class HnauChatProcessor(
         val transportIds = sendMessage(response)
         context.messagesRepository.save(
             MessageRecord(
-                id = MessageId(UUID.randomUUID().toString()),
+                id = MessageId.new(),
                 userId = context.chatId,
                 role = MessageRole.Assistant,
                 transportIds = transportIds,
