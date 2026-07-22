@@ -4,5 +4,5 @@ interface Chat {
 
     suspend fun sendMessage(
         markdownText: String,
-    ): List<TransportMessageId>
+    ): List<ChatMessageId>
 }

@@ -9,20 +9,20 @@ import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
-import org.hnau.llmchat.app.hnauchat.messages.MessageId
 import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
 import org.hnau.llmchat.app.hnauchat.messages.MessageRole
 import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
+import org.hnau.llmchat.app.hnauchat.messages.StorageMessageId
 import org.hnau.llmchat.app.hnauchat.messages.fold
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.chat.api.Chat
 import org.hnau.llmchat.chat.api.ChatId
+import org.hnau.llmchat.chat.api.ChatMessageId
 import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.chat.api.ChatProcessor
 import org.hnau.llmchat.chat.api.ChatRootPage
-import org.hnau.llmchat.chat.api.TransportMessageId
 import kotlin.time.Clock
 
 class HnauChatProcessor(
@@ -88,7 +88,7 @@ class HnauChatProcessor(
         chat: Chat,
         role: MessageRole,
         text: String,
-        parentMessageId: MessageId,
+        parentMessageId: StorageMessageId,
     ) {
         val transportIds = chat.sendMessage(
             markdownText = text,
@@ -96,7 +96,7 @@ class HnauChatProcessor(
         context
             .messagesRepository
             .save(
-                id = MessageId.new(),
+                id = StorageMessageId.new(),
                 record = MessageRecord(
                     userId = context.chatId,
                     role = role,
@@ -113,12 +113,12 @@ class HnauChatProcessor(
         context: Context,
         chat: Chat,
         transportPrompt: String,
-        replayFor: TransportMessageId?,
-        incomingMessageId: TransportMessageId,
+        replayFor: ChatMessageId?,
+        incomingMessageId: ChatMessageId,
         message: String
     ) {
 
-        val userMsgId = MessageId.new()
+        val userMsgId = StorageMessageId.new()
 
         val parentMessageId = replayFor.foldNullable(
             ifNull = {

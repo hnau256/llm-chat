@@ -6,7 +6,7 @@ import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.toMapper
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.chat.api.ChatId
-import org.hnau.llmchat.chat.api.TransportMessageId
+import org.hnau.llmchat.chat.api.ChatMessageId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlin.time.Instant
@@ -16,7 +16,7 @@ class MessagesRepository(
 ) {
 
     suspend fun save(
-        id: MessageId,
+        id: StorageMessageId,
         record: MessageRecord,
     ) {
         db.withConnection { connection ->
@@ -43,8 +43,8 @@ class MessagesRepository(
 
     suspend fun findByTransportId(
         userId: ChatId,
-        transportId: TransportMessageId,
-    ): MessageId? = db.withConnection { connection ->
+        transportId: ChatMessageId,
+    ): StorageMessageId? = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
@@ -63,13 +63,13 @@ class MessagesRepository(
                     .executeQuery()
                     .takeIf(ResultSet::next)
                     ?.getString(IdColumn)
-                    ?.let(::MessageId)
+                    ?.let(::StorageMessageId)
             }
     }
 
     suspend fun findLastMessageId(
         userId: ChatId,
-    ): MessageId? = db.withConnection { connection ->
+    ): StorageMessageId? = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
@@ -85,12 +85,12 @@ class MessagesRepository(
                     .executeQuery()
                     .takeIf(ResultSet::next)
                     ?.getString(IdColumn)
-                    ?.let(::MessageId)
+                    ?.let(::StorageMessageId)
             }
     }
 
     suspend fun findById(
-        id: MessageId,
+        id: StorageMessageId,
     ): MessageRecord? = db.withConnection { connection ->
         connection
             .prepareStatement(
@@ -119,7 +119,7 @@ class MessagesRepository(
                 .let(transportMessagesIdsStringMapper.direct),
             text = rs.getString(TextColumn),
             timestamp = rs.getLong(TimestampColumn).let(timestampMapper.direct),
-            parentMessageId = rs.getString(ParentMessageIdColumn)?.let(::MessageId),
+            parentMessageId = rs.getString(ParentMessageIdColumn)?.let(::StorageMessageId),
             summary = rs.getString(SummaryColumn),
         )
 
@@ -139,7 +139,7 @@ class MessagesRepository(
             reverse = Instant::toEpochMilliseconds
         )
 
-        private val transportMessagesIdsStringMapper: Mapper<String, List<TransportMessageId>> =
-            Json.toMapper(ListSerializer(TransportMessageId.serializer()))
+        private val transportMessagesIdsStringMapper: Mapper<String, List<ChatMessageId>> =
+            Json.toMapper(ListSerializer(ChatMessageId.serializer()))
     }
 }

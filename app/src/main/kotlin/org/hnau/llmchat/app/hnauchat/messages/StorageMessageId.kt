@@ -1,18 +1,17 @@
 package org.hnau.llmchat.app.hnauchat.messages
 
 import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmInline
 import kotlin.uuid.Uuid
 
 @Serializable
 @JvmInline
-value class MessageId(
+value class StorageMessageId(
     val id: String,
 ) {
 
     companion object {
 
-        fun new(): MessageId = MessageId(
+        fun new(): StorageMessageId = StorageMessageId(
             id = Uuid.random().toString(),
         )
     }

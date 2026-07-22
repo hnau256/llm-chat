@@ -5,6 +5,6 @@ import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline
-value class TransportMessageId(
+value class ChatMessageId(
     val id: String,
 )

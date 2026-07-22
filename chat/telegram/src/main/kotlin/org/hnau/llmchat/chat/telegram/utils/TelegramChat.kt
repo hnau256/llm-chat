@@ -5,7 +5,7 @@ import dev.inmo.tgbotapi.extensions.api.send.sendMessage
 import dev.inmo.tgbotapi.types.IdChatIdentifier
 import dev.inmo.tgbotapi.types.message.HTMLParseMode
 import org.hnau.llmchat.chat.api.Chat
-import org.hnau.llmchat.chat.api.TransportMessageId
+import org.hnau.llmchat.chat.api.ChatMessageId
 import org.hnau.llmchat.chat.telegram.utils.md.mdToTGMessages
 
 class TelegramChat(
@@ -15,7 +15,7 @@ class TelegramChat(
 
     override suspend fun sendMessage(
         markdownText: String,
-    ): List<TransportMessageId> = markdownText
+    ): List<ChatMessageId> = markdownText
         .mdToTGMessages()
         ?.map { message ->
             bot

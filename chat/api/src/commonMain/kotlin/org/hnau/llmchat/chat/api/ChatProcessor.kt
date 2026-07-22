@@ -12,8 +12,8 @@ interface ChatProcessor<C> {
         context: C,
         chat: Chat,
         transportPrompt: String,
-        replayFor: TransportMessageId?,
-        incomingMessageId: TransportMessageId,
+        replayFor: ChatMessageId?,
+        incomingMessageId: ChatMessageId,
         message: String,
     )
 }
