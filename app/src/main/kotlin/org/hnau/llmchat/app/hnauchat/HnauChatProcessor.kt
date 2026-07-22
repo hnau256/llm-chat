@@ -148,9 +148,14 @@ class HnauChatProcessor(
             )
         )
 
-        val historyMessages = parentMessageId?.let { id ->
-            context.messagesRepository.getByStorageId(id)
-        }
+        val historyMessages: List<MessageRecord> = parentMessageId
+            ?.let { id ->
+                context
+                    .messagesRepository
+                    .getByStorageId(id)
+                    ?.let { listOf(it) }
+            }
+            .orEmpty()
 
         val (client, model) = context
             .llmConnectionManager
@@ -170,55 +175,70 @@ class HnauChatProcessor(
         val response = runCatching {
             client.execute(
                 prompt = Prompt(
-                    messages = listOfNotNull(
-                        Message.System(
-                            content = "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message.",
-                            metaInfo = RequestMetaInfo.Empty,
-                        ),
-                        Message.System(
-                            content = transportPrompt,
-                            metaInfo = RequestMetaInfo.Empty,
-                        ),
+                    messages = buildList {
+
+                        add(
+                            Message.System(
+                                content = "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message.",
+                                metaInfo = RequestMetaInfo.Empty,
+                            )
+                        )
+
+                        add(
+                            Message.System(
+                                content = transportPrompt,
+                                metaInfo = RequestMetaInfo.Empty,
+                            )
+                        )
+
                         context
                             .settings
                             .settings
                             .basePrompt
                             .takeIf(String::isNotEmpty)
                             ?.let { basePrompt ->
-                                Message.User(
-                                    content = basePrompt,
-                                    metaInfo = RequestMetaInfo.Empty,
+                                add(
+                                    Message.User(
+                                        content = basePrompt,
+                                        metaInfo = RequestMetaInfo.Empty,
+                                    )
                                 )
-                            },
-                        historyMessages?.let { historyRecord ->
-                            historyRecord
-                                .role
-                                .fold(
-                                    ifUser = {
-                                        Message.User(
-                                            content = historyRecord.text,
-                                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                                        )
-                                    },
-                                    ifAssistant = {
-                                        Message.Assistant(
-                                            content = historyRecord.text,
-                                            metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                                        )
-                                    },
-                                    ifSystem = {
-                                        Message.System(
-                                            content = historyRecord.text,
-                                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                                        )
-                                    },
-                                )
-                        },
-                        Message.User(
-                            content = message,
-                            metaInfo = RequestMetaInfo.create { Clock.System.now() },
-                        ),
-                    ),
+                            }
+
+                        addAll(
+                            historyMessages.map { historyRecord ->
+                                historyRecord
+                                    .role
+                                    .fold(
+                                        ifUser = {
+                                            Message.User(
+                                                content = historyRecord.text,
+                                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                            )
+                                        },
+                                        ifAssistant = {
+                                            Message.Assistant(
+                                                content = historyRecord.text,
+                                                metaInfo = ResponseMetaInfo(historyRecord.timestamp),
+                                            )
+                                        },
+                                        ifSystem = {
+                                            Message.System(
+                                                content = historyRecord.text,
+                                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                            )
+                                        },
+                                    )
+                            }
+                        )
+
+                        add(
+                            Message.User(
+                                content = message,
+                                metaInfo = RequestMetaInfo.create { Clock.System.now() },
+                            )
+                        )
+                    },
                     id = message.hashCode().toString(),
                 ),
                 model = model,
