@@ -68,7 +68,7 @@ class HnauChatProcessor(
 
         return Context(
             chatId = chatId,
-            messagesRepository = MessagesRepository.create(
+            messagesRepository = MessagesRepository(
                 db = dependencies.db,
             ),
             settings = settings,
@@ -105,8 +105,8 @@ class HnauChatProcessor(
         val userMsgId = MessageId.new()
 
         context.messagesRepository.save(
-            MessageRecord(
-                id = userMsgId,
+            id = userMsgId,
+            record = MessageRecord(
                 userId = context.chatId,
                 role = MessageRole.User,
                 transportIds = listOf(incomingMessageId),
@@ -159,6 +159,7 @@ class HnauChatProcessor(
                                     content = historyRecord.text,
                                     metaInfo = RequestMetaInfo(historyRecord.timestamp),
                                 )
+
                                 MessageRole.Assistant -> Message.Assistant(
                                     content = historyRecord.text,
                                     metaInfo = ResponseMetaInfo(historyRecord.timestamp),
@@ -179,8 +180,8 @@ class HnauChatProcessor(
                 val errorText = "Error while requesting LLM: ${error.message}"
                 val errorTransportIds = sendMessage(errorText)
                 context.messagesRepository.save(
-                    MessageRecord(
-                        id = MessageId.new(),
+                    id = MessageId.new(),
+                    record = MessageRecord(
                         userId = context.chatId,
                         role = MessageRole.Assistant,
                         transportIds = errorTransportIds,
@@ -201,8 +202,8 @@ class HnauChatProcessor(
 
         val transportIds = sendMessage(response)
         context.messagesRepository.save(
-            MessageRecord(
-                id = MessageId.new(),
+            id = MessageId.new(),
+            record = MessageRecord(
                 userId = context.chatId,
                 role = MessageRole.Assistant,
                 transportIds = transportIds,
