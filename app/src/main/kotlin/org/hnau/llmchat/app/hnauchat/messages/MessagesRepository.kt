@@ -2,7 +2,6 @@ package org.hnau.llmchat.app.hnauchat.messages
 
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import org.hnau.commons.kotlin.KeyValue
 import org.hnau.commons.kotlin.mapper.Mapper
 import org.hnau.commons.kotlin.mapper.toMapper
 import org.hnau.llmchat.app.db.DBAccessor
@@ -105,7 +104,6 @@ class MessagesRepository(
                     .executeQuery()
                     .takeIf(ResultSet::next)
                     ?.let(::toMessageRecord)
-                    ?.value
             }
     }
 
@@ -114,18 +112,15 @@ class MessagesRepository(
 
         private fun toMessageRecord(
             rs: ResultSet,
-        ): KeyValue<TransportMessageId, MessageRecord> = KeyValue(
-            key = TransportMessageId(rs.getString(IdColumn)),
-            value = MessageRecord(
-                userId = ChatId(rs.getString(UserIdColumn)),
-                role = rs.getString(RoleColumn).let(MessageRole.stringMapper.direct),
-                transportIds = rs.getString(TransportIdsColumn)
-                    .let(transportMessagesIdsStringMapper.direct),
-                text = rs.getString(TextColumn),
-                timestamp = rs.getLong(TimestampColumn).let(timestampMapper.direct),
-                parentMessageId = rs.getString(ParentMessageIdColumn)?.let(::MessageId),
-                summary = rs.getString(SummaryColumn),
-            ),
+        ): MessageRecord = MessageRecord(
+            userId = ChatId(rs.getString(UserIdColumn)),
+            role = rs.getString(RoleColumn).let(MessageRole.stringMapper.direct),
+            transportIds = rs.getString(TransportIdsColumn)
+                .let(transportMessagesIdsStringMapper.direct),
+            text = rs.getString(TextColumn),
+            timestamp = rs.getLong(TimestampColumn).let(timestampMapper.direct),
+            parentMessageId = rs.getString(ParentMessageIdColumn)?.let(::MessageId),
+            summary = rs.getString(SummaryColumn),
         )
 
         private const val TableName = "messages"
@@ -140,8 +135,8 @@ class MessagesRepository(
         private const val SummaryColumn = "summary"
 
         private val timestampMapper: Mapper<Long, Instant> = Mapper(
-            direct = Instant::fromEpochSeconds,
-            reverse = Instant::epochSeconds
+            direct = Instant::fromEpochMilliseconds,
+            reverse = Instant::toEpochMilliseconds
         )
 
         private val transportMessagesIdsStringMapper: Mapper<String, List<TransportMessageId>> =
