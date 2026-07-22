@@ -1,10 +1,7 @@
 package org.hnau.llmchat.app.hnauchat
 
 import ai.koog.prompt.Prompt
-import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
-import ai.koog.prompt.message.RequestMetaInfo
-import ai.koog.prompt.message.ResponseMetaInfo
 import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.db.DBAccessor
@@ -13,7 +10,7 @@ import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
 import org.hnau.llmchat.app.hnauchat.messages.MessageRole
 import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
 import org.hnau.llmchat.app.hnauchat.messages.StorageMessageId
-import org.hnau.llmchat.app.hnauchat.messages.fold
+import org.hnau.llmchat.app.hnauchat.messages.buildLLMChatMessages
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.ChatSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
@@ -124,12 +121,8 @@ class HnauChatProcessor(
                         transportId = replayFor,
                     )
                     ?: run {
-                        sendAndSaveMessage(
-                            messagesRepository = context.messagesRepository,
-                            chat = chat,
-                            role = MessageRole.System,
-                            text = "Unable to find the message you replied to",
-                            parentMessageId = chatMsgId,
+                        chat.sendMessage(
+                            markdownText = "Unable to find the message you replied to",
                         )
                         return
                     }
@@ -148,21 +141,13 @@ class HnauChatProcessor(
             )
         )
 
-        val historyMessages: List<MessageRecord> = parentMessageId
-            ?.let { id -> context.messagesRepository.getHistory(id) }
-            .orEmpty()
-
         val (client, model) = context
             .llmConnectionManager
             .client
             ?.getClientWithModel()
             ?: run {
-                sendAndSaveMessage(
-                    messagesRepository = context.messagesRepository,
-                    chat = chat,
-                    role = MessageRole.System,
-                    text = "Configure LLM connection before sending messages",
-                    parentMessageId = chatMsgId,
+                chat.sendMessage(
+                    markdownText = "Configure LLM connection before sending messages",
                 )
                 return
             }
@@ -170,82 +155,20 @@ class HnauChatProcessor(
         val response = runCatching {
             client.execute(
                 prompt = Prompt(
-                    messages = buildList {
-
-                        add(
-                            Message.System(
-                                content = "You are a helpful AI assistant. Keep responses concise and to the point. Reply in the same language as the user's message.",
-                                metaInfo = RequestMetaInfo.Empty,
-                            )
-                        )
-
-                        add(
-                            Message.System(
-                                content = transportPrompt,
-                                metaInfo = RequestMetaInfo.Empty,
-                            )
-                        )
-
-                        context
-                            .settings
-                            .settings
-                            .basePrompt
-                            .takeIf(String::isNotEmpty)
-                            ?.let { basePrompt ->
-                                add(
-                                    Message.User(
-                                        content = basePrompt,
-                                        metaInfo = RequestMetaInfo.Empty,
-                                    )
-                                )
-                            }
-
-                        addAll(
-                            historyMessages.map { historyRecord ->
-                                historyRecord
-                                    .role
-                                    .fold(
-                                        ifUser = {
-                                            Message.User(
-                                                content = historyRecord.text,
-                                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                                            )
-                                        },
-                                        ifAssistant = {
-                                            Message.Assistant(
-                                                content = historyRecord.text,
-                                                metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                                            )
-                                        },
-                                        ifSystem = {
-                                            Message.System(
-                                                content = historyRecord.text,
-                                                metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                                            )
-                                        },
-                                    )
-                            }
-                        )
-
-                        add(
-                            Message.User(
-                                content = message,
-                                metaInfo = RequestMetaInfo.create { Clock.System.now() },
-                            )
-                        )
-                    },
+                    messages = buildLLMChatMessages(
+                        transportPrompt = transportPrompt,
+                        context = context,
+                        userMessage = message,
+                        parentMessageId = parentMessageId,
+                    ),
                     id = message.hashCode().toString(),
                 ),
                 model = model,
             )
         }
             .getOrElse { error ->
-                sendAndSaveMessage(
-                    messagesRepository = context.messagesRepository,
-                    chat = chat,
-                    role = MessageRole.System,
-                    text = "Error while requesting LLM: ${error.message}",
-                    parentMessageId = chatMsgId,
+                chat.sendMessage(
+                    markdownText = "Error while requesting LLM: ${error.message}",
                 )
                 return
             }

@@ -6,7 +6,7 @@ import org.hnau.commons.kotlin.mapper.nameToEnum
 
 @Fold
 enum class MessageRole {
-    User, Assistant, System;
+    User, Assistant;
 
     companion object {
 
