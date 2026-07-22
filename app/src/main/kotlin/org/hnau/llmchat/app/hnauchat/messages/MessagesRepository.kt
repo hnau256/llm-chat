@@ -2,38 +2,15 @@ package org.hnau.llmchat.app.hnauchat.messages
 
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import org.hnau.commons.gen.fold.annotations.Fold
 import org.hnau.commons.kotlin.KeyValue
 import org.hnau.commons.kotlin.mapper.Mapper
-import org.hnau.commons.kotlin.mapper.nameToEnum
 import org.hnau.commons.kotlin.mapper.toMapper
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.chat.api.ChatId
-import org.hnau.llmchat.chat.api.MessageId
+import org.hnau.llmchat.chat.api.TransportMessageId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlin.time.Instant
-
-@Fold
-enum class MessageRole {
-    User, Assistant, System;
-
-    companion object {
-
-        val stringMapper: Mapper<String, MessageRole> =
-            Mapper.nameToEnum<MessageRole>()
-    }
-}
-
-data class MessageRecord(
-    val userId: ChatId,
-    val role: MessageRole,
-    val transportIds: List<MessageId>,
-    val text: String,
-    val timestamp: Instant,
-    val parentMessageId: MessageId?,
-    val summary: String?,
-)
 
 class MessagesRepository(
     private val db: DBAccessor,
@@ -55,7 +32,7 @@ class MessagesRepository(
                     setString(1, id.id)
                     setString(2, record.userId.id)
                     setString(3, record.role.let(MessageRole.stringMapper.reverse))
-                    setString(4, record.transportIds.let(messagesIdsStringMapper.reverse))
+                    setString(4, record.transportIds.let(transportMessagesIdsStringMapper.reverse))
                     setString(5, record.text)
                     setLong(6, record.timestamp.let(timestampMapper.reverse))
                     record.parentMessageId?.let { setString(7, it.id) }
@@ -67,7 +44,7 @@ class MessagesRepository(
 
     suspend fun findByTransportId(
         userId: ChatId,
-        transportId: MessageId,
+        transportId: TransportMessageId,
     ): MessageId? = db.withConnection { connection ->
         connection
             .prepareStatement(
@@ -137,12 +114,13 @@ class MessagesRepository(
 
         private fun toMessageRecord(
             rs: ResultSet,
-        ): KeyValue<MessageId, MessageRecord> = KeyValue(
-            key = MessageId(rs.getString(IdColumn)),
+        ): KeyValue<TransportMessageId, MessageRecord> = KeyValue(
+            key = TransportMessageId(rs.getString(IdColumn)),
             value = MessageRecord(
                 userId = ChatId(rs.getString(UserIdColumn)),
                 role = rs.getString(RoleColumn).let(MessageRole.stringMapper.direct),
-                transportIds = rs.getString(TransportIdsColumn).let(messagesIdsStringMapper.direct),
+                transportIds = rs.getString(TransportIdsColumn)
+                    .let(transportMessagesIdsStringMapper.direct),
                 text = rs.getString(TextColumn),
                 timestamp = rs.getLong(TimestampColumn).let(timestampMapper.direct),
                 parentMessageId = rs.getString(ParentMessageIdColumn)?.let(::MessageId),
@@ -166,6 +144,7 @@ class MessagesRepository(
             reverse = Instant::epochSeconds
         )
 
-        private val messagesIdsStringMapper = Json.toMapper(ListSerializer(MessageId.serializer()))
+        private val transportMessagesIdsStringMapper: Mapper<String, List<TransportMessageId>> =
+            Json.toMapper(ListSerializer(TransportMessageId.serializer()))
     }
 }

@@ -9,6 +9,7 @@ import org.hnau.commons.gen.pipe.annotations.Pipe
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
+import org.hnau.llmchat.app.hnauchat.messages.MessageId
 import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
 import org.hnau.llmchat.app.hnauchat.messages.MessageRole
 import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
@@ -21,7 +22,7 @@ import org.hnau.llmchat.chat.api.ChatId
 import org.hnau.llmchat.chat.api.ChatPage
 import org.hnau.llmchat.chat.api.ChatProcessor
 import org.hnau.llmchat.chat.api.ChatRootPage
-import org.hnau.llmchat.chat.api.MessageId
+import org.hnau.llmchat.chat.api.TransportMessageId
 import kotlin.time.Clock
 
 class HnauChatProcessor(
@@ -112,10 +113,12 @@ class HnauChatProcessor(
         context: Context,
         chat: Chat,
         transportPrompt: String,
-        replayFor: MessageId?,
-        incomingMessageId: MessageId,
+        replayFor: TransportMessageId?,
+        incomingMessageId: TransportMessageId,
         message: String
     ) {
+
+        val userMsgId = MessageId.new()
 
         val parentMessageId = replayFor.foldNullable(
             ifNull = {
@@ -136,14 +139,12 @@ class HnauChatProcessor(
                             chat = chat,
                             role = MessageRole.System,
                             text = "Unable to find the message you replied to",
-                            parentMessageId = incomingMessageId,
+                            parentMessageId = userMsgId,
                         )
                         return
                     }
             }
         )
-
-        val userMsgId = MessageId.new()
 
         context.messagesRepository.save(
             id = userMsgId,
@@ -172,7 +173,7 @@ class HnauChatProcessor(
                     chat = chat,
                     role = MessageRole.System,
                     text = "Configure LLM connection before sending messages",
-                    parentMessageId = incomingMessageId,
+                    parentMessageId = userMsgId,
                 )
                 return
             }
@@ -240,7 +241,7 @@ class HnauChatProcessor(
                     chat = chat,
                     role = MessageRole.System,
                     text = "Error while requesting LLM: ${error.message}",
-                    parentMessageId = incomingMessageId,
+                    parentMessageId = userMsgId,
                 )
                 return
             }

@@ -1,4 +1,4 @@
-package org.hnau.llmchat.chat.api
+package org.hnau.llmchat.app.hnauchat.messages
 
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
