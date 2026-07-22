@@ -80,7 +80,7 @@ interface UserSettingsRepository {
 
         private const val TableName = "user_settings"
 
-        private const val ChatIdColumn = "user_id"
+        private const val ChatIdColumn = "chat_id"
 
         private const val SettingsColumn = "settings"
 
