@@ -44,7 +44,6 @@ class HnauChatProcessor(
     }
 
     data class Context(
-        val chatId: ChatId,
         val messagesRepository: MessagesRepository,
         val settings: UserSettingsRepository,
         val llmConnectionManager: LLMConnectionManager,
@@ -70,9 +69,9 @@ class HnauChatProcessor(
         )
 
         return Context(
-            chatId = chatId,
             messagesRepository = MessagesRepository(
                 db = dependencies.db,
+                chatId = chatId,
             ),
             settings = settings,
             llmConnectionManager = LLMConnectionManager(
@@ -83,8 +82,8 @@ class HnauChatProcessor(
         )
     }
 
-    private suspend fun sendMessage(
-        context: Context,
+    private suspend fun sendAndSaveMessage(
+        messagesRepository: MessagesRepository,
         chat: Chat,
         role: MessageRole,
         text: String,
@@ -93,20 +92,17 @@ class HnauChatProcessor(
         val transportIds = chat.sendMessage(
             markdownText = text,
         )
-        context
-            .messagesRepository
-            .save(
-                id = StorageMessageId.new(),
-                chatId = context.chatId,
-                record = MessageRecord(
-                    role = role,
-                    transportIds = transportIds,
-                    text = text,
-                    timestamp = Clock.System.now(),
-                    parentMessageId = parentMessageId,
-                    summary = null,
-                )
+        messagesRepository.save(
+            id = StorageMessageId.new(),
+            record = MessageRecord(
+                role = role,
+                transportIds = transportIds,
+                text = text,
+                timestamp = Clock.System.now(),
+                parentMessageId = parentMessageId,
+                summary = null,
             )
+        )
     }
 
     override suspend fun handleMessage(
@@ -121,21 +117,15 @@ class HnauChatProcessor(
         val userMsgId = StorageMessageId.new()
 
         val parentMessageId = replayFor.foldNullable(
-            ifNull = {
-                context.messagesRepository.findLastMessageId(
-                    userId = context.chatId,
-                )
-            },
+            ifNull = { context.messagesRepository.findLastMessageId() },
             ifNotNull = { replayFor ->
-                context
-                    .messagesRepository
+                context.messagesRepository
                     .findByTransportId(
-                        chatId = context.chatId,
                         transportId = replayFor,
                     )
                     ?: run {
-                        sendMessage(
-                            context = context,
+                        sendAndSaveMessage(
+                            messagesRepository = context.messagesRepository,
                             chat = chat,
                             role = MessageRole.System,
                             text = "Unable to find the message you replied to",
@@ -148,7 +138,6 @@ class HnauChatProcessor(
 
         context.messagesRepository.save(
             id = userMsgId,
-            chatId = context.chatId,
             record = MessageRecord(
                 role = MessageRole.User,
                 transportIds = listOf(incomingMessageId),
@@ -160,7 +149,7 @@ class HnauChatProcessor(
         )
 
         val historyMessages = parentMessageId?.let { id ->
-            context.messagesRepository.findByStorageId(id)
+            context.messagesRepository.getByStorageId(id)
         }
 
         val (client, model) = context
@@ -168,8 +157,8 @@ class HnauChatProcessor(
             .client
             ?.getClientWithModel()
             ?: run {
-                sendMessage(
-                    context = context,
+                sendAndSaveMessage(
+                    messagesRepository = context.messagesRepository,
                     chat = chat,
                     role = MessageRole.System,
                     text = "Configure LLM connection before sending messages",
@@ -236,8 +225,8 @@ class HnauChatProcessor(
             )
         }
             .getOrElse { error ->
-                sendMessage(
-                    context = context,
+                sendAndSaveMessage(
+                    messagesRepository = context.messagesRepository,
                     chat = chat,
                     role = MessageRole.System,
                     text = "Error while requesting LLM: ${error.message}",
@@ -252,8 +241,8 @@ class HnauChatProcessor(
                 transform = MessagePart.Text::text,
             )
 
-        sendMessage(
-            context = context,
+        sendAndSaveMessage(
+            messagesRepository = context.messagesRepository,
             chat = chat,
             role = MessageRole.Assistant,
             text = response,

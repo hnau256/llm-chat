@@ -12,12 +12,12 @@ import java.sql.ResultSet
 import kotlin.time.Instant
 
 class MessagesRepository(
+    private val chatId: ChatId,
     private val db: DBAccessor,
 ) {
 
     suspend fun save(
         id: StorageMessageId,
-        chatId: ChatId,
         record: MessageRecord,
     ) {
         db.withConnection { connection ->
@@ -43,7 +43,6 @@ class MessagesRepository(
     }
 
     suspend fun findByTransportId(
-        chatId: ChatId,
         transportId: ChatMessageId,
     ): StorageMessageId? = db.withConnection { connection ->
         connection
@@ -68,9 +67,7 @@ class MessagesRepository(
             }
     }
 
-    suspend fun findLastMessageId(
-        userId: ChatId,
-    ): StorageMessageId? = db.withConnection { connection ->
+    suspend fun findLastMessageId(): StorageMessageId? = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
@@ -80,7 +77,7 @@ class MessagesRepository(
                         LIMIT 1
                     """.trimIndent()
             )
-            .apply { setString(1, userId.id) }
+            .apply { setString(1, chatId.id) }
             .use { statement ->
                 statement
                     .executeQuery()
@@ -90,7 +87,7 @@ class MessagesRepository(
             }
     }
 
-    suspend fun findByStorageId(
+    suspend fun getByStorageId(
         id: StorageMessageId,
     ): MessageRecord? = db.withConnection { connection ->
         connection
