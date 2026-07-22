@@ -6,11 +6,13 @@ import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.prompt.message.ResponseMetaInfo
 import org.hnau.commons.gen.pipe.annotations.Pipe
+import org.hnau.commons.kotlin.foldNullable
 import org.hnau.llmchat.app.db.DBAccessor
 import org.hnau.llmchat.app.hnauchat.llmconnection.LLMConnectionManager
 import org.hnau.llmchat.app.hnauchat.messages.MessageRecord
 import org.hnau.llmchat.app.hnauchat.messages.MessageRole
 import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
+import org.hnau.llmchat.app.hnauchat.messages.fold
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
 import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
@@ -80,27 +82,66 @@ class HnauChatProcessor(
         )
     }
 
-    override suspend fun Chat.handleMessage(
+    private suspend fun sendMessage(
         context: Context,
+        chat: Chat,
+        role: MessageRole,
+        text: String,
+        parentMessageId: MessageId,
+    ) {
+        val transportIds = chat.sendMessage(
+            markdownText = text,
+        )
+        context
+            .messagesRepository
+            .save(
+                id = MessageId.new(),
+                record = MessageRecord(
+                    userId = context.chatId,
+                    role = role,
+                    transportIds = transportIds,
+                    text = text,
+                    timestamp = Clock.System.now(),
+                    parentMessageId = parentMessageId,
+                    summary = null,
+                )
+            )
+    }
+
+    override suspend fun handleMessage(
+        context: Context,
+        chat: Chat,
         transportPrompt: String,
         replayFor: MessageId?,
         incomingMessageId: MessageId,
         message: String
     ) {
 
-        val parentDbId = if (replayFor != null) {
-            context.messagesRepository.findByTransportId(
-                userId = context.chatId,
-                transportId = replayFor,
-            ) ?: run {
-                sendMessage("Unable to find the message you replied to")
-                return
+        val parentMessageId = replayFor.foldNullable(
+            ifNull = {
+                context.messagesRepository.findLastMessageId(
+                    userId = context.chatId,
+                )
+            },
+            ifNotNull = { replayFor ->
+                context
+                    .messagesRepository
+                    .findByTransportId(
+                        userId = context.chatId,
+                        transportId = replayFor,
+                    )
+                    ?: run {
+                        sendMessage(
+                            context = context,
+                            chat = chat,
+                            role = MessageRole.System,
+                            text = "Unable to find the message you replied to",
+                            parentMessageId = incomingMessageId,
+                        )
+                        return
+                    }
             }
-        } else {
-            context.messagesRepository.findLastMessageId(
-                userId = context.chatId,
-            )
-        }
+        )
 
         val userMsgId = MessageId.new()
 
@@ -112,12 +153,12 @@ class HnauChatProcessor(
                 transportIds = listOf(incomingMessageId),
                 text = message,
                 timestamp = Clock.System.now(),
-                parentMessageId = parentDbId,
+                parentMessageId = parentMessageId,
                 summary = null,
             )
         )
 
-        val historyMessages = parentDbId?.let { id ->
+        val historyMessages = parentMessageId?.let { id ->
             context.messagesRepository.findById(id)
         }
 
@@ -126,7 +167,13 @@ class HnauChatProcessor(
             .client
             ?.getClientWithModel()
             ?: run {
-                sendMessage("Configure LLM connection before sending messages")
+                sendMessage(
+                    context = context,
+                    chat = chat,
+                    role = MessageRole.System,
+                    text = "Configure LLM connection before sending messages",
+                    parentMessageId = incomingMessageId,
+                )
                 return
             }
 
@@ -154,22 +201,28 @@ class HnauChatProcessor(
                                 )
                             },
                         historyMessages?.let { historyRecord ->
-                            when (historyRecord.role) {
-                                MessageRole.User -> Message.User(
-                                    content = historyRecord.text,
-                                    metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                            historyRecord
+                                .role
+                                .fold(
+                                    ifUser = {
+                                        Message.User(
+                                            content = historyRecord.text,
+                                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                        )
+                                    },
+                                    ifAssistant = {
+                                        Message.Assistant(
+                                            content = historyRecord.text,
+                                            metaInfo = ResponseMetaInfo(historyRecord.timestamp),
+                                        )
+                                    },
+                                    ifSystem = {
+                                        Message.System(
+                                            content = historyRecord.text,
+                                            metaInfo = RequestMetaInfo(historyRecord.timestamp),
+                                        )
+                                    },
                                 )
-
-                                MessageRole.Assistant -> Message.Assistant(
-                                    content = historyRecord.text,
-                                    metaInfo = ResponseMetaInfo(historyRecord.timestamp),
-                                )
-
-                                MessageRole.System -> Message.System(
-                                    content = historyRecord.text,
-                                    metaInfo = RequestMetaInfo(historyRecord.timestamp),
-                                )
-                            }
                         },
                         Message.User(
                             content = message,
@@ -182,19 +235,12 @@ class HnauChatProcessor(
             )
         }
             .getOrElse { error ->
-                val errorText = "Error while requesting LLM: ${error.message}"
-                val errorTransportIds = sendMessage(errorText)
-                context.messagesRepository.save(
-                    id = MessageId.new(),
-                    record = MessageRecord(
-                        userId = context.chatId,
-                        role = MessageRole.Assistant,
-                        transportIds = errorTransportIds,
-                        text = errorText,
-                        timestamp = Clock.System.now(),
-                        parentMessageId = userMsgId,
-                        summary = null,
-                    )
+                sendMessage(
+                    context = context,
+                    chat = chat,
+                    role = MessageRole.System,
+                    text = "Error while requesting LLM: ${error.message}",
+                    parentMessageId = incomingMessageId,
                 )
                 return
             }
@@ -205,18 +251,12 @@ class HnauChatProcessor(
                 transform = MessagePart.Text::text,
             )
 
-        val transportIds = sendMessage(response)
-        context.messagesRepository.save(
-            id = MessageId.new(),
-            record = MessageRecord(
-                userId = context.chatId,
-                role = MessageRole.Assistant,
-                transportIds = transportIds,
-                text = response,
-                timestamp = Clock.System.now(),
-                parentMessageId = userMsgId,
-                summary = null,
-            )
+        sendMessage(
+            context = context,
+            chat = chat,
+            role = MessageRole.Assistant,
+            text = response,
+            parentMessageId = userMsgId,
         )
     }
 }

@@ -8,8 +8,9 @@ interface ChatProcessor<C> {
         chatId: ChatId,
     ): C
 
-    suspend fun Chat.handleMessage(
+    suspend fun handleMessage(
         context: C,
+        chat: Chat,
         transportPrompt: String,
         replayFor: MessageId?,
         incomingMessageId: MessageId,

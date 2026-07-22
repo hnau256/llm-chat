@@ -79,19 +79,17 @@ fun <C> ChatProcessor<C>.toTelegramBotConfig(): BehaviourContextReceiver<Unit> =
             return@onText
         }
 
-
-        val chat = TelegramChat(
-            bot = this,
-            chatId = context.chatId,
-        )
-
         setMessageReaction(
             message = message,
             emoji = "👀",
         )
 
-        chat.handleMessage(
+        handleMessage(
             context = context.context,
+            chat = TelegramChat(
+                bot = this,
+                chatId = context.chatId,
+            ),
             transportPrompt = TELEGRAM_TRANSPORT_PROMPT,
             replayFor = message.replyTo?.messageId?.toMessageId(),
             incomingMessageId = message.messageId.toMessageId(),
