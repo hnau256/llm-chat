@@ -11,12 +11,12 @@ import org.hnau.llmchat.chat.api.ChatId
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 
-interface UserSettingsRepository {
+interface ChatSettingsRepository {
 
-    val settings: UserSettings
+    val settings: ChatSettings
 
     suspend fun update(
-        newSettings: UserSettings,
+        newSettings: ChatSettings,
     )
 
     @Suppress("ConstPropertyName")
@@ -25,7 +25,7 @@ interface UserSettingsRepository {
         suspend fun create(
             db: DBAccessor,
             chatId: ChatId,
-        ): UserSettingsRepository {
+        ): ChatSettingsRepository {
 
             var cached = db.withConnection { connection ->
                 connection
@@ -36,7 +36,7 @@ interface UserSettingsRepository {
                             .executeQuery()
                             .takeIf(ResultSet::next)
                             .foldNullable(
-                                ifNull = { UserSettings() },
+                                ifNull = { ChatSettings() },
                                 ifNotNull = { resultSet ->
                                     resultSet
                                         .getString(SettingsColumn)
@@ -46,14 +46,14 @@ interface UserSettingsRepository {
                     }
             }
 
-            return object : UserSettingsRepository {
-                override val settings: UserSettings
+            return object : ChatSettingsRepository {
+                override val settings: ChatSettings
                     get() = cached
 
                 private val updateMutex = Mutex()
 
                 override suspend fun update(
-                    newSettings: UserSettings,
+                    newSettings: ChatSettings,
                 ) {
                     updateMutex.withLock {
                         db.withConnection { connection ->
@@ -78,14 +78,14 @@ interface UserSettingsRepository {
 
         }
 
-        private const val TableName = "user_settings"
+        private const val TableName = "chat_settings"
 
         private const val ChatIdColumn = "chat_id"
 
         private const val SettingsColumn = "settings"
 
         @Suppress("JSON_FORMAT_REDUNDANT")
-        private val settingsStringMapper: Mapper<String, UserSettings> =
-            Json { ignoreUnknownKeys = true }.toMapper(UserSettings.serializer())
+        private val settingsStringMapper: Mapper<String, ChatSettings> =
+            Json { ignoreUnknownKeys = true }.toMapper(ChatSettings.serializer())
     }
 }

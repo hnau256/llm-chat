@@ -6,7 +6,7 @@ import org.hnau.llmchat.app.llm.model.LLMClientConfig
 import org.hnau.llmchat.app.llm.model.LLMProviderType
 
 @Serializable
-data class UserSettings(
+data class ChatSettings(
     val basePrompt: String = "",
     val llmClientConfig: LLMClientConfig? = null,
     val model: KeyValue<LLMProviderType, String>? = null,

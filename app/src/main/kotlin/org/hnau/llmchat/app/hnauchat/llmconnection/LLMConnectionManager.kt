@@ -13,7 +13,7 @@ import org.hnau.commons.kotlin.KeyValue
 import org.hnau.commons.kotlin.foldBoolean
 import org.hnau.commons.kotlin.foldNullable
 import org.hnau.commons.kotlin.ifNull
-import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
+import org.hnau.llmchat.app.hnauchat.settings.ChatSettingsRepository
 import org.hnau.llmchat.app.hnauchat.settings.update
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.app.llm.model.LLMClientConfig
@@ -33,7 +33,7 @@ class LLMConnectionManager(
     @Pipe
     interface Dependencies {
 
-        val settings: UserSettingsRepository
+        val settings: ChatSettingsRepository
 
         val modelsProvider: ModelsProvider
     }

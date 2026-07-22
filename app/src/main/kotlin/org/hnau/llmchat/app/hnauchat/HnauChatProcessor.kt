@@ -15,7 +15,7 @@ import org.hnau.llmchat.app.hnauchat.messages.MessagesRepository
 import org.hnau.llmchat.app.hnauchat.messages.StorageMessageId
 import org.hnau.llmchat.app.hnauchat.messages.fold
 import org.hnau.llmchat.app.hnauchat.page.generateSettingsPage
-import org.hnau.llmchat.app.hnauchat.settings.UserSettingsRepository
+import org.hnau.llmchat.app.hnauchat.settings.ChatSettingsRepository
 import org.hnau.llmchat.app.hnauchat.utils.ModelsProvider
 import org.hnau.llmchat.chat.api.Chat
 import org.hnau.llmchat.chat.api.ChatId
@@ -37,7 +37,7 @@ class HnauChatProcessor(
         val modelsProvider: ModelsProvider
 
         fun llmConnectionManager(
-            settings: UserSettingsRepository,
+            settings: ChatSettingsRepository,
         ): LLMConnectionManager.Dependencies
 
         companion object
@@ -45,7 +45,7 @@ class HnauChatProcessor(
 
     data class Context(
         val messagesRepository: MessagesRepository,
-        val settings: UserSettingsRepository,
+        val settings: ChatSettingsRepository,
         val llmConnectionManager: LLMConnectionManager,
     )
 
@@ -63,7 +63,7 @@ class HnauChatProcessor(
         chatId: ChatId,
     ): Context {
 
-        val settings = UserSettingsRepository.create(
+        val settings = ChatSettingsRepository.create(
             db = dependencies.db,
             chatId = chatId,
         )
@@ -114,7 +114,7 @@ class HnauChatProcessor(
         message: String
     ) {
 
-        val userMsgId = StorageMessageId.new()
+        val chatMsgId = StorageMessageId.new()
 
         val parentMessageId = replayFor.foldNullable(
             ifNull = { context.messagesRepository.findLastMessageId() },
@@ -129,7 +129,7 @@ class HnauChatProcessor(
                             chat = chat,
                             role = MessageRole.System,
                             text = "Unable to find the message you replied to",
-                            parentMessageId = userMsgId,
+                            parentMessageId = chatMsgId,
                         )
                         return
                     }
@@ -137,7 +137,7 @@ class HnauChatProcessor(
         )
 
         context.messagesRepository.save(
-            id = userMsgId,
+            id = chatMsgId,
             record = MessageRecord(
                 role = MessageRole.User,
                 transportIds = listOf(incomingMessageId),
@@ -162,7 +162,7 @@ class HnauChatProcessor(
                     chat = chat,
                     role = MessageRole.System,
                     text = "Configure LLM connection before sending messages",
-                    parentMessageId = userMsgId,
+                    parentMessageId = chatMsgId,
                 )
                 return
             }
@@ -245,7 +245,7 @@ class HnauChatProcessor(
                     chat = chat,
                     role = MessageRole.System,
                     text = "Error while requesting LLM: ${error.message}",
-                    parentMessageId = userMsgId,
+                    parentMessageId = chatMsgId,
                 )
                 return
             }
@@ -261,7 +261,7 @@ class HnauChatProcessor(
             chat = chat,
             role = MessageRole.Assistant,
             text = response,
-            parentMessageId = userMsgId,
+            parentMessageId = chatMsgId,
         )
     }
 }
