@@ -17,19 +17,20 @@ class MessagesRepository(
 
     suspend fun save(
         id: StorageMessageId,
+        chatId: ChatId,
         record: MessageRecord,
     ) {
         db.withConnection { connection ->
             connection
                 .prepareStatement(
                     """
-                            INSERT INTO $TableName ($IdColumn, $UserIdColumn, $RoleColumn, $TransportIdsColumn, $TextColumn, $TimestampColumn, $ParentMessageIdColumn, $SummaryColumn)
+                            INSERT INTO $TableName ($IdColumn, $ChatIdColumn, $RoleColumn, $TransportIdsColumn, $TextColumn, $TimestampColumn, $ParentMessageIdColumn, $SummaryColumn)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """.trimIndent()
                 )
                 .apply {
                     setString(1, id.id)
-                    setString(2, record.userId.id)
+                    setString(2, chatId.id)
                     setString(3, record.role.let(MessageRole.stringMapper.reverse))
                     setString(4, record.transportIds.let(transportMessagesIdsStringMapper.reverse))
                     setString(5, record.text)
@@ -42,20 +43,20 @@ class MessagesRepository(
     }
 
     suspend fun findByTransportId(
-        userId: ChatId,
+        chatId: ChatId,
         transportId: ChatMessageId,
     ): StorageMessageId? = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
                         SELECT $IdColumn FROM $TableName
-                        WHERE $UserIdColumn = ? AND EXISTS (
+                        WHERE $ChatIdColumn = ? AND EXISTS (
                             SELECT 1 FROM json_each($TransportIdsColumn) WHERE value = ?
                         )
                     """.trimIndent()
             )
             .apply {
-                setString(1, userId.id)
+                setString(1, chatId.id)
                 setString(2, transportId.id)
             }
             .use { statement ->
@@ -74,7 +75,7 @@ class MessagesRepository(
             .prepareStatement(
                 """
                         SELECT $IdColumn FROM $TableName
-                        WHERE $UserIdColumn = ?
+                        WHERE $ChatIdColumn = ?
                         ORDER BY $TimestampColumn DESC
                         LIMIT 1
                     """.trimIndent()
@@ -113,7 +114,6 @@ class MessagesRepository(
         private fun toMessageRecord(
             rs: ResultSet,
         ): MessageRecord = MessageRecord(
-            userId = ChatId(rs.getString(UserIdColumn)),
             role = rs.getString(RoleColumn).let(MessageRole.stringMapper.direct),
             transportIds = rs.getString(TransportIdsColumn)
                 .let(transportMessagesIdsStringMapper.direct),
@@ -126,7 +126,7 @@ class MessagesRepository(
         private const val TableName = "messages"
 
         private const val IdColumn = "id"
-        private const val UserIdColumn = "user_id"
+        private const val ChatIdColumn = "chat_id"
         private const val RoleColumn = "role"
         private const val TransportIdsColumn = "transport_ids"
         private const val TextColumn = "text"

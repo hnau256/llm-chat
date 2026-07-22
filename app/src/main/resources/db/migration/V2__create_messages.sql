@@ -1,6 +1,6 @@
 CREATE TABLE messages (
     id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    chat_id TEXT NOT NULL,
     role TEXT NOT NULL,
     transport_ids TEXT NOT NULL DEFAULT '[]',
     text TEXT NOT NULL,

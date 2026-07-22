@@ -1,11 +1,9 @@
 package org.hnau.llmchat.app.hnauchat.messages
 
-import org.hnau.llmchat.chat.api.ChatId
 import org.hnau.llmchat.chat.api.ChatMessageId
 import kotlin.time.Instant
 
 data class MessageRecord(
-    val userId: ChatId,
     val role: MessageRole,
     val transportIds: List<ChatMessageId>,
     val text: String,

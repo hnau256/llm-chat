@@ -97,8 +97,8 @@ class HnauChatProcessor(
             .messagesRepository
             .save(
                 id = StorageMessageId.new(),
+                chatId = context.chatId,
                 record = MessageRecord(
-                    userId = context.chatId,
                     role = role,
                     transportIds = transportIds,
                     text = text,
@@ -130,7 +130,7 @@ class HnauChatProcessor(
                 context
                     .messagesRepository
                     .findByTransportId(
-                        userId = context.chatId,
+                        chatId = context.chatId,
                         transportId = replayFor,
                     )
                     ?: run {
@@ -148,8 +148,8 @@ class HnauChatProcessor(
 
         context.messagesRepository.save(
             id = userMsgId,
+            chatId = context.chatId,
             record = MessageRecord(
-                userId = context.chatId,
                 role = MessageRole.User,
                 transportIds = listOf(incomingMessageId),
                 text = message,
