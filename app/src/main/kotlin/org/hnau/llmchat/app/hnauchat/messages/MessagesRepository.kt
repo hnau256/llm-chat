@@ -89,20 +89,28 @@ class MessagesRepository(
 
     suspend fun getHistory(
         startId: StorageMessageId,
+        maxDepth: Int,
+        tail: Int,
     ): List<MessageRecord> = db.withConnection { connection ->
         connection
             .prepareStatement(
                 """
                     WITH RECURSIVE chain AS (
-                        SELECT * FROM $TableName WHERE $IdColumn = ?
+                        SELECT *, 0 AS depth FROM $TableName WHERE $IdColumn = ?
                         UNION ALL
-                        SELECT m.* FROM $TableName m
+                        SELECT m.*, c.depth + 1 FROM $TableName m
                         JOIN chain c ON m.$IdColumn = c.$ParentMessageIdColumn
+                        WHERE c.depth + 1 < ?
+                          AND (c.depth + 1 < ? OR m.$SummaryColumn IS NULL)
                     )
                     SELECT * FROM chain ORDER BY $TimestampColumn ASC
                 """.trimIndent()
             )
-            .apply { setString(1, startId.id) }
+            .apply {
+                setString(1, startId.id)
+                setInt(2, maxDepth)
+                setInt(3, tail)
+            }
             .use { statement ->
                 val result = mutableListOf<MessageRecord>()
                 statement
@@ -114,6 +122,23 @@ class MessagesRepository(
                     }
                 result
             }
+    }
+
+    suspend fun updateSummary(
+        id: StorageMessageId,
+        summary: String,
+    ) = db.withConnection { connection ->
+        connection
+            .prepareStatement(
+                """
+                    UPDATE $TableName SET $SummaryColumn = ? WHERE $IdColumn = ?
+                """.trimIndent()
+            )
+            .apply {
+                setString(1, summary)
+                setString(2, id.id)
+            }
+            .use(PreparedStatement::executeUpdate)
     }
 
     companion object {

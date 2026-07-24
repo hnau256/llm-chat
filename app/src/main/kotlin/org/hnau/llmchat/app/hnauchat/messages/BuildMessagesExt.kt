@@ -11,8 +11,9 @@ private const val SYSTEM_PROMPT =
 internal suspend fun buildLLMChatMessages(
     transportPrompt: String,
     context: HnauChatProcessor.Context,
-    parentMessageId: StorageMessageId?,
-    userMessage: MessageRecord,
+    historyMessages: List<MessageRecord>,
+    userMessage: MessageRecord?,
+    summary: String? = null,
 ): List<Message> = buildList {
 
     add(
@@ -32,14 +33,20 @@ internal suspend fun buildLLMChatMessages(
         )
     )
 
-    addAll(
-        parentMessageId
-            ?.let { id -> context.messagesRepository.getHistory(id) }
-            .orEmpty()
-            .map(MessageRecord::koogMessage)
-    )
+    if (summary != null) {
+        add(
+            Message.System(
+                content = "Previous conversation summary:\n$summary",
+                metaInfo = RequestMetaInfo.Empty,
+            )
+        )
+    }
 
-    add(userMessage.koogMessage)
+    addAll(historyMessages.map { it.koogMessage })
+
+    if (userMessage != null) {
+        add(userMessage.koogMessage)
+    }
 }
 
 private val MessageRecord.koogMessage: Message
